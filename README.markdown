@@ -223,3 +223,8 @@ Callback is called with argument:
     resolver.cancel query
 
 `EM::Udns::Resolver#cancel(query)` cancels `EM::Udns::Query` given as argument so no callback/errback would be called upon query completion.
+
+
+## Acknowledgement
+
+Many thanks to Michael Tokarev (the author of [udns](http://www.corpit.ru/mjt/udns.html) C library) for all the help provided in udns maillist.
