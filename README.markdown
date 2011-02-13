@@ -145,6 +145,21 @@ Callback is called with argument:
     ["tunnelserver.concepts-ict.net"]
 
 
+### TXT Record
+
+    resolver.submit_TXT(domain)
+
+In case of success the callback is invoked passing as argument an array of `String` objects. Each `String` represents a text entry in the TXT result.
+
+Example:
+
+    resolver.submit_TXT "gmail.com"
+
+Callback is called with argument:
+
+    ["v=spf1 redirect=_spf.google.com"]
+
+    
 ### SRV Record
 
     resolver.submit_SRV(domain)
