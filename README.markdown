@@ -225,6 +225,13 @@ Callback is called with argument:
 `EM::Udns::Resolver#cancel(query)` cancels `EM::Udns::Query` given as argument so no callback/errback would be called upon query completion.
 
 
+## Installation
+
+EM-Udns is provided as a Ruby Gem:
+
+    ~$ gem install em-udns
+
+
 ## Acknowledgement
 
 Many thanks to Michael Tokarev (the author of [udns](http://www.corpit.ru/mjt/udns.html) C library) for all the help provided in udns maillist.

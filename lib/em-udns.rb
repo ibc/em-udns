@@ -2,7 +2,6 @@ require "eventmachine"
 
 require "em_udns_ext"
 require "em-udns/resolver"
-require "em-udns/version"
 
 
 module EventMachine::Udns

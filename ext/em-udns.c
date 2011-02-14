@@ -1,7 +1,7 @@
 #include <ruby.h>
 #include <ctype.h>
 #include <netinet/in.h>
-#include <udns.h>
+#include "udns.h"
 #include "em-udns.h"
 
 
@@ -73,9 +73,6 @@ VALUE Resolver_dns_open(VALUE self)
   struct dns_ctx *dns_context = NULL;
 
   Data_Get_Struct(self, struct dns_ctx, dns_context);
-
-  // FIXME: This shouldn't be required, but it fixes a bug in 0.0.9.
-  dns_init(dns_context, 0);
 
   dns_set_tmcbck(dns_context, timer_cb, (void*)self);
   
