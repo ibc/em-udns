@@ -569,20 +569,20 @@ VALUE Resolver_submit_NAPTR(VALUE self, VALUE rb_domain)
 
 
 /* Attribute readers. */
-VALUE RR_MX_domain(VALUE self)          { return rv_ivar_get(self, rb_intern("@domain")); }
-VALUE RR_MX_priority(VALUE self)        { return rv_ivar_get(self, rb_intern("@priority")); }
+VALUE RR_MX_domain(VALUE self)          { return rb_ivar_get(self, rb_intern("@domain")); }
+VALUE RR_MX_priority(VALUE self)        { return rb_ivar_get(self, rb_intern("@priority")); }
 
-VALUE RR_SRV_priority(VALUE self)       { return rv_ivar_get(self, rb_intern("@priority")); }
-VALUE RR_SRV_weight(VALUE self)         { return rv_ivar_get(self, rb_intern("@weight")); }
-VALUE RR_SRV_port(VALUE self)           { return rv_ivar_get(self, rb_intern("@port")); }
-VALUE RR_SRV_domain(VALUE self)         { return rv_ivar_get(self, rb_intern("@domain")); }
+VALUE RR_SRV_priority(VALUE self)       { return rb_ivar_get(self, rb_intern("@priority")); }
+VALUE RR_SRV_weight(VALUE self)         { return rb_ivar_get(self, rb_intern("@weight")); }
+VALUE RR_SRV_port(VALUE self)           { return rb_ivar_get(self, rb_intern("@port")); }
+VALUE RR_SRV_domain(VALUE self)         { return rb_ivar_get(self, rb_intern("@domain")); }
 
-VALUE RR_NAPTR_order(VALUE self)        { return rv_ivar_get(self, rb_intern("@order")); }
-VALUE RR_NAPTR_preference(VALUE self)   { return rv_ivar_get(self, rb_intern("@preference")); }
-VALUE RR_NAPTR_flags(VALUE self)        { return rv_ivar_get(self, rb_intern("@flags")); }
-VALUE RR_NAPTR_service(VALUE self)      { return rv_ivar_get(self, rb_intern("@service")); }
-VALUE RR_NAPTR_regexp(VALUE self)       { return rv_ivar_get(self, rb_intern("@regexp")); }
-VALUE RR_NAPTR_replacement(VALUE self)  { return rv_ivar_get(self, rb_intern("@replacement")); }
+VALUE RR_NAPTR_order(VALUE self)        { return rb_ivar_get(self, rb_intern("@order")); }
+VALUE RR_NAPTR_preference(VALUE self)   { return rb_ivar_get(self, rb_intern("@preference")); }
+VALUE RR_NAPTR_flags(VALUE self)        { return rb_ivar_get(self, rb_intern("@flags")); }
+VALUE RR_NAPTR_service(VALUE self)      { return rb_ivar_get(self, rb_intern("@service")); }
+VALUE RR_NAPTR_regexp(VALUE self)       { return rb_ivar_get(self, rb_intern("@regexp")); }
+VALUE RR_NAPTR_replacement(VALUE self)  { return rb_ivar_get(self, rb_intern("@replacement")); }
 
 
 void Init_em_udns_ext()
