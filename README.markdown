@@ -202,11 +202,12 @@ In case of success the callback is invoked passing as argument an array of `EM::
 
 Example:
 
-    resolver.submit_NAPTR "opensips.org"
+    resolver.submit_NAPTR "oversip.net"
 
 Callback is called with argument:
 
-    [#<EventMachine::Udns::RR_NAPTR:0x000000024e12c0 @order=10, @preference=10, @flags="s", @service="SIP+D2U", @regexp=nil, @replacement="_sip._udp.opensips.org">]
+    [#<EventMachine::Udns::RR_NAPTR:0x00000000a49c28 @order=10, @preference=1, @flags="S", @service="SIP+D2T", @regexp=nil, @replacement="_sip._tcp.oversip.net">,
+     #<EventMachine::Udns::RR_NAPTR:0x00000000a49750 @order=10, @preference=2, @flags="S", @service="SIP+D2U", @regexp=nil, @replacement="_sip._udp.oversip.net">]
 
 
 ## Other Features
