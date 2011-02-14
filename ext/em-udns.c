@@ -1,5 +1,4 @@
 #include <ruby.h>
-#include <ctype.h>
 #include <netinet/in.h>
 #include "udns.h"
 #include "em-udns.h"
