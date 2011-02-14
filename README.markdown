@@ -33,18 +33,18 @@ It would produce following output:
 
     resolver = EM::Udns::Resolver.new(nameserver = nil)
 
-Returns a EM::Udns::Resolver instance. `nameserver` parameter determines the nameserver(s) to use:
+Returns a `EM::Udns::Resolver` instance. nameserver parameter determines the nameserver(s) to use:
 
  * `nil` - List of nameservers are taken from `/etc/resolv.conf` (default behavior).
  * `String` - The IP of a single nameserver.
- * `Array` -  IP's of multiple nameservers.
+ * Array of `String` -  IP's of multiple nameservers.
 
 
 ## Runnig a Resolver
 
     EM::Udns.run resolver
 
-Attaches the UDP socket of the `resolver` to EventMachine. This method must be called after EventMachine is running.
+Attaches the UDP socket of the resolver to EventMachine. This method must be called after EventMachine is running.
 
 
 ## Async DNS Queries
@@ -126,7 +126,7 @@ Callback is called with argument:
 
     resolver.submit_PTR(ip)
 
-Argument `ip` must be a String representing a IPv4 or IPv6 (if not, `ArgumentError` exception would be raised). In case of success the callback is invoked passing as argument an array of `String` objects. Each `String` represents a domain.
+Argument ip must be a `String` representing a IPv4 or IPv6 (if not, `ArgumentError` exception would be raised). In case of success the callback is invoked passing as argument an array of `String` objects. Each `String` represents a domain.
 
 Example 1:
 
@@ -167,8 +167,8 @@ Callback is called with argument:
 
 There are two ways to perform a SRV query:
 
- * By passing as argument a single String (`domain`) with the format `_service._protocol.domain`.
- * By passing three String arguments (`domain`, `service` and `protocol`).
+ * By passing as argument a single `String` (domain) with the format "_service._protocol.domain".
+ * By passing three `String` arguments (domain, service and protocol).
  
 In case of success the callback is invoked passing as argument an array of `EM::Udns::RR_SRV` objects. Such object contains the following attribute readers:
 
@@ -215,14 +215,14 @@ Callback is called with argument:
 
     resolver.active
 
-`EM::Udns::Resolver#active` returns the number of pending queries of `resolver` as a `Fixnum`.
+`EM::Udns::Resolver#active` returns the number of pending queries of resolver as a `Fixnum`.
 
 
 ### Cancelling a Pending Query
 
     resolver.cancel query
 
-`EM::Udns::Resolver#cancel(query)` cancels `EM::Udns::Query` given as argument so no callback/errback would be called upon query completion.
+`EM::Udns::Resolver#cancel(query)` cancels the `EM::Udns::Query` given as argument so no callback/errback would be called upon query completion.
 
 
 ## Installation
