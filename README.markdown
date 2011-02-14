@@ -234,4 +234,4 @@ EM-Udns is provided as a Ruby Gem:
 
 ## Acknowledgement
 
-Many thanks to Michael Tokarev (the author of [udns](http://www.corpit.ru/mjt/udns.html) C library) for all the help provided in udns maillist.
+Many thanks to Michael Tokarev (the author of [udns](http://www.corpit.ru/mjt/udns.html) C library) for all the help provided in udns mailing list.
