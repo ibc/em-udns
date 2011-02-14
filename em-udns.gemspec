@@ -1,6 +1,6 @@
 Gem::Specification.new do |spec|
   spec.name = "em-udns"
-  spec.version = "0.1.0"
+  spec.version = "0.1.1"
   spec.date = Time.now
   spec.authors = ["Iñaki Baz Castillo"]
   spec.email = "ibc@aliax.net"
