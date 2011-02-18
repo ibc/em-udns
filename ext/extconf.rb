@@ -1,4 +1,5 @@
 require "mkmf"
+require "rbconfig"
 require "fileutils"
 
 
@@ -20,11 +21,46 @@ Dir.chdir(here) do
 
   Dir.chdir(udns_path) do
     sys("./configure")
-    # udns must be compiled dynamically or it would fail under Linux 64 bits.
-    # See https://github.com/ibc/em-udns/issues#issue/1
-    sys("make sharedlib")
-    sys("ar r libudns.a *.lo")
 
+    case host_os = RbConfig::CONFIG["host_os"]
+    
+    # Linux.
+    # Under Linux 64 bits udns must be compiled dynamically (also works for 32 bits):
+    #   https://github.com/ibc/em-udns/issues#issue/1
+    when /linux/i
+      sys("make sharedlib")
+      sys("ar r libudns.a *.lo")
+
+    # BSD.
+    # TODO: Not tested. Let's try same as under Linux.
+    when /bsd/i
+      sys("make sharedlib")
+      sys("ar r libudns.a *.lo")
+
+    # Solaris.
+    # TODO: Not tested. Let's try same as under Linux.
+    when /solaris/i
+      sys("make sharedlib")
+      sys("ar r libudns.a *.lo")
+      
+    # Mac OSX.
+    # TODO: This is tested under OSX 32 bits, it could fail under OSX 64 bits (not tested).
+    when /darwin|mac os/
+      sys("make libudns.a")
+
+    # Windows.
+    # NOTE: udns doesn't work on Windows, but there is a port:
+    #   http://network-research.org/udns.html
+    when /mswin|msys|mingw32|windows/i
+      raise "udns doesn't compile on Windows, you can try a Windows port: http://network-research.org/udns.html," \
+            "report to https://github.com/ibc/em-udns/issues"
+    
+    # Other platforms. Error.
+    else
+      raise "unknown operating system: #{host_os.inspect}"
+      
+    end
+      
     FileUtils.mv "libudns.a", "../"
     FileUtils.mv "udns.h", "../"
   end

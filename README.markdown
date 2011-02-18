@@ -233,6 +233,23 @@ EM-Udns is provided as a Ruby Gem:
     ~$ gem install em-udns
 
 
+## Supported Platforms
+
+EM-Udns is tested under the following platforms:
+
+ * Linux 32 bits
+ * Linux 64 bits
+ * Mac OSX 32 bits
+
+See also the [extconf.rb](https://github.com/ibc/em-udns/blob/master/ext/extconf.rb) file which compiles udns C library according to current platform.
+
+
+## TODO
+
+ * Testing on other platforms.
+ * Improving the integration of udns C library sources into EM-Udns gem (see the [open report](https://github.com/ibc/em-udns/issues#issue/1)).
+
+
 ## Acknowledgement
 
 Many thanks to Michael Tokarev (the author of [udns](http://www.corpit.ru/mjt/udns.html) C library) for all the help provided in udns mailing list.
