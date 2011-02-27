@@ -1,6 +1,8 @@
+require "./lib/em-udns/version"
+
 Gem::Specification.new do |spec|
   spec.name = "em-udns"
-  spec.version = "0.1.3"
+  spec.version = EventMachine::Udns::VERSION
   spec.date = Time.now
   spec.authors = ["Iñaki Baz Castillo"]
   spec.email = "ibc@aliax.net"
@@ -13,6 +15,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "eventmachine"
   spec.files = %w{
     lib/em-udns.rb
+    lib/em-udns/version.rb
     lib/em-udns/resolver.rb
     ext/em-udns.c
     ext/em-udns.h
