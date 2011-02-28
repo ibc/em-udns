@@ -69,4 +69,4 @@ Dir.chdir(here) do
 end
 
 have_library("udns")  # == -ludns
-create_makefile("em_udns_ext")
+create_makefile("em-udns/em_udns_ext")

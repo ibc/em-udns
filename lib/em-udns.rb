@@ -1,6 +1,6 @@
 require "eventmachine"
 
-require "em_udns_ext"
+require "em-udns/em_udns_ext"
 require "em-udns/version"
 require "em-udns/resolver"
 
