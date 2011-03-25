@@ -172,7 +172,8 @@ There are two ways to perform a SRV query:
  
 In case of success the callback is invoked passing as argument an array of `EM::Udns::RR_SRV` objects. Such object contains the following attribute readers:
 
- * `domain` - `String` representing the domain of the SRV record.
+ * `domain` - `String` representing the A domain of the SRV record.
+ * `port` - `Fixnum` representing the port of the SRV record.
  * `priority` - `Fixnum` representing the priority of the SRV record.
  * `weight` - `Fixnum` representing the weight of the SRV record.
 
