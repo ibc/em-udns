@@ -17,6 +17,22 @@ module EventMachine::Udns
     end
   end
 
+  def self.nameservers=(nameservers)
+    if nameservers
+      ENV.delete("NAMESERVERS")
+      ENV["NAMESERVERS"] = case nameservers
+        # A single nameserver.
+        when String
+          nameservers
+        # Multiple nameservers.
+        when Array
+          nameservers.join(" ")
+        else
+          raise Error, "`nameservers' argument must be a String or Array of addresses"
+        end
+    end
+  end
+  
   def self.run(resolver)
     raise Error, "EventMachine is not running" unless EM.reactor_running?
 

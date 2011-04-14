@@ -54,8 +54,11 @@ end
 
 EM.set_max_timers 100000
 EM.run do
+
+  # Set the nameserver rather than using /etc/resolv.conf.
+  #EM::Udns.nameservers = "127.0.0.1"
   
-  resolver = EM::Udns::Resolver.new "127.0.0.1"
+  resolver = EM::Udns::Resolver.new
   EM::Udns.run resolver
 
   second = 0

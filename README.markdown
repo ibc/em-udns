@@ -10,7 +10,10 @@ C udns is a stub resolver, so also EM-Udns. This means that it must rely on a re
     require "em-udns"
 
     EM.run do
-      resolver = EM::Udns::Resolver.new "127.0.0.1"
+      # Set the nameserver rather than using /etc/resolv.conf.
+      EM::Udns.nameservers = "127.0.0.1"
+      
+      resolver = EM::Udns::Resolver.new
       EM::Udns.run resolver
 
       query = resolver.submit_A "google.com"
@@ -29,17 +32,33 @@ It would produce following output:
     result => ["209.85.227.105", "209.85.227.103", "209.85.227.104", "209.85.227.106", "209.85.227.99", "209.85.227.147"]
 
 
-## Initializing a Resolver
+## Setting the Nameservers
 
-    resolver = EM::Udns::Resolver.new(nameserver = nil)
+    EM::Udns.nameservers = nameservers
 
-Returns a `EM::Udns::Resolver` instance. nameserver parameter determines the nameserver(s) to use:
+This class method set the nameservers list to use for all the `EM::Udns::Resolver` instances. If not used, nameservers are taken from `/etc/resolv.conf` (default behavior). nameserver parameter can be:
 
- * `nil` - List of nameservers are taken from `/etc/resolv.conf` (default behavior).
  * `String` - The IP of a single nameserver.
  * Array of `String` -  IP's of multiple nameservers.
 
+IMPORTANT: This class method must be used before initializing any `EM::Udns::Resolver` instance.
 
+Example 1:
+
+    EM::Udns.nameservers = "127.0.0.1"
+    
+Example 2:
+
+    EM::Udns.nameservers = ["192.168.100.1", "192.168.100.2"]
+    
+
+## Initializing a Resolver
+
+    resolver = EM::Udns::Resolver.new
+
+Returns a `EM::Udns::Resolver` instance.
+
+    
 ## Runnig a Resolver
 
     EM::Udns.run resolver
