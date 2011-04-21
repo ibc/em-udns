@@ -196,6 +196,8 @@ In case of success the callback is invoked passing as argument an array of `EM::
  * `priority` - `Fixnum` representing the priority of the SRV record.
  * `weight` - `Fixnum` representing the weight of the SRV record.
 
+For more information about these fields check [RFC 2782](http://tools.ietf.org/html/rfc2782).
+
 Example:
 
     resolver.submit_SRV "_sip._udp.oversip.net"
@@ -217,8 +219,12 @@ In case of success the callback is invoked passing as argument an array of `EM::
 
  * `order` - `Fixnum` representing the order of the NAPTR record.
  * `preference` - `Fixnum` representing the preference of the NAPTR record.
+ * `flags` - `String` representing the flags of the NAPTR record.
+ * `service` - `String` representing the service of the NAPTR record.
  * `regexp` - `String` representing the regular expression field of the NAPTR record (`nil` in case `replacement` has value).
  * `replacement` - `String` representing the replacement string field of the NAPTR record (`nil` in case `regexp` has value).
+
+For more information about these fields check [RFC 2915](http://tools.ietf.org/html/rfc2915).
 
 Example:
 
