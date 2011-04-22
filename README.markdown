@@ -77,7 +77,7 @@ In case of success, callback is invoked on the  `EM::Udns::Query` object passing
 In case of error, errback is invoked with the exact error as single argument, which is a Ruby Symbol:
 
  * `:dns_error_nxdomain` - The domain name does not exist.
- * `:dns_error_nodata` - There is no data of requested type found.
+ * `:dns_error_nodata` - The domain exists, but has no data of requested type.
  * `:dns_error_tempfail` - Temporary error, the resolver nameserver was not able to process our query or timed out.
  * `:dns_error_protocol` - Protocol error, a nameserver returned malformed reply.
 
