@@ -94,7 +94,11 @@ EM.run do
 
     query.callback do |result|
       recv += 1
-      puts "#{Time.now} INFO: callback: result => #{result.inspect}  (sent: #{sent} / recv: #{recv})"
+      puts "#{Time.now} INFO: callback: result =>"
+      result.each do |rr|
+        puts "- #{rr.inspect}"
+      end
+      puts "(sent: #{sent} / recv: #{recv})"
       if recv == times
         print_info(times, time_start)
         exit

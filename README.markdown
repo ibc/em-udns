@@ -105,7 +105,12 @@ Example:
 
 Callback is called with argument:
 
-    ["209.85.227.105", "209.85.227.103", "209.85.227.104", "209.85.227.106", "209.85.227.99", "209.85.227.147"]
+    ["209.85.227.105",
+     "209.85.227.103",
+     "209.85.227.104",
+     "209.85.227.106",
+     "209.85.227.99",
+     "209.85.227.147"]
 
 
 ### AAAA Record
@@ -116,11 +121,14 @@ In case of success the callback is invoked passing as argument an array of `Stri
 
 Example:
 
-    resolver.submit_AAAA "google.com"
+    resolver.submit_AAAA "sixxs.net"
 
 Callback is called with argument:
 
-    ["2001:838:2:1::30:67", "2001:838:2:1:2a0:24ff:feab:3b53", "2001:960:800::2", "2001:1af8:4050::2"]
+    ["2001:838:2:1::30:67",
+     "2001:838:2:1:2a0:24ff:feab:3b53",
+     "2001:960:800::2",
+     "2001:1af8:4050::2"]
 
 
 ### MX Record
@@ -134,11 +142,15 @@ In case of success the callback is invoked passing as argument an array of `EM::
 
 Example:
 
-    resolver.submit_MX "linux.org"
+    resolver.submit_MX "gmail.com"
 
 Callback is called with argument:
 
-    [#<EventMachine::Udns::RR_MX:0x000000018008f8 @domain="mail.linux.org", @priority=10>]
+    [#<EventMachine::Udns::RR_MX:0x00000002289090 @domain="alt1.gmail-smtp-in.l.google.com", @priority=10>,
+     #<EventMachine::Udns::RR_MX:0x00000002288e60 @domain="alt3.gmail-smtp-in.l.google.com", @priority=30>,
+     #<EventMachine::Udns::RR_MX:0x000000022886e0 @domain="gmail-smtp-in.l.google.com", @priority=5>,
+     #<EventMachine::Udns::RR_MX:0x00000002288618 @domain="alt2.gmail-smtp-in.l.google.com", @priority=20>,
+     #<EventMachine::Udns::RR_MX:0x000000022883c0 @domain="alt4.gmail-smtp-in.l.google.com", @priority=40>]
 
 
 ### PTR Record
@@ -200,16 +212,17 @@ For more information about these fields check [RFC 2782](http://tools.ietf.org/h
 
 Example:
 
-    resolver.submit_SRV "_sip._udp.oversip.net"
+    resolver.submit_SRV "_sip._tcp.oversip.net"
 
 or:
 
-    resolver.submit_SRV "oversip.net", "sip", "udp"
+    resolver.submit_SRV "oversip.net", "sip", "tcp"
 
 Callback is called with argument:
 
-    [#<EventMachine::Udns::RR_SRV:0x00000000b9ea88 @domain="sip.oversip.net", @priority=0, @weight=0, @port=5062>]
-
+    [#<EventMachine::Udns::RR_SRV:0x00000001ea4970 @domain="sip1.oversip.net", @priority=1, @weight=50, @port=5062>,
+     #<EventMachine::Udns::RR_SRV:0x00000001ea4b50 @domain="sip2.oversip.net", @priority=2, @weight=50, @port=5060>]
+     
 
 ### NAPTR Record
 
@@ -232,8 +245,10 @@ Example:
 
 Callback is called with argument:
 
-    [#<EventMachine::Udns::RR_NAPTR:0x00000000a49c28 @order=10, @preference=1, @flags="S", @service="SIP+D2T", @regexp=nil, @replacement="_sip._tcp.oversip.net">,
-     #<EventMachine::Udns::RR_NAPTR:0x00000000a49750 @order=10, @preference=2, @flags="S", @service="SIP+D2U", @regexp=nil, @replacement="_sip._udp.oversip.net">]
+    [#<EventMachine::Udns::RR_NAPTR:0x00000002472aa0 @order=30, @preference=50, @flags="S", @service="SIPS+D2T", @regexp=nil, @replacement="_sips._tcp.oversip.net">,
+     #<EventMachine::Udns::RR_NAPTR:0x00000002472848 @order=40, @preference=50, @flags="S", @service="SIP+D2S", @regexp=nil, @replacement="_sip._sctp.oversip.net">,
+     #<EventMachine::Udns::RR_NAPTR:0x000000024723e8 @order=10, @preference=50, @flags="S", @service="SIP+D2T", @regexp=nil, @replacement="_sip._tcp.oversip.net">,
+     #<EventMachine::Udns::RR_NAPTR:0x00000002471d80 @order=20, @preference=50, @flags="S", @service="SIP+D2U", @regexp=nil, @replacement="_sip._udp.oversip.net">]
 
 
 ## Other Features

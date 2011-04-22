@@ -20,6 +20,31 @@ static VALUE eUdnsTempFail;
 static VALUE eUdnsNoMem;
 static VALUE eUdnsBadQuery;
 
+static ID id_timer;
+static ID id_queries;
+static ID id_domain;
+static ID id_priority;
+static ID id_weight;
+static ID id_port;
+static ID id_order;
+static ID id_preference;
+static ID id_flags;
+static ID id_service;
+static ID id_regexp;
+static ID id_replacement;
+
+static VALUE symbol_dns_error_tempfail;
+static VALUE symbol_dns_error_protocol;
+static VALUE symbol_dns_error_nxdomain;
+static VALUE symbol_dns_error_nodata;
+static VALUE symbol_dns_error_unknown;
+static VALUE symbol_failed;
+static VALUE symbol_succeeded;
+
+static ID method_cancel;
+static ID method_set_timer;
+static ID method_set_deferred_status;
+
 
 void Resolver_free(struct dns_ctx *dns_context)
 {
@@ -56,14 +81,14 @@ void timer_cb(struct dns_ctx *dns_context, int timeout, void *data)
   VALUE timer;
 
   resolver = (VALUE)data;
-  timer = rb_ivar_get(resolver, rb_intern("@timer"));
+  timer = rb_ivar_get(resolver, id_timer);
 
   /* Cancel the EM::Timer. */
   if (TYPE(timer) != T_NIL)
-    rb_funcall(timer, rb_intern("cancel"), 0);
+    rb_funcall(timer, method_cancel, 0);
   
   if (timeout >= 0)
-    rb_funcall(resolver, rb_intern("set_timer"), 1, INT2FIX(timeout));
+    rb_funcall(resolver, method_set_timer, 1, INT2FIX(timeout));
 }
 
 
@@ -118,7 +143,7 @@ VALUE Resolver_cancel(VALUE self, VALUE query)
   VALUE queries;
   VALUE value;
   
-  queries = rb_ivar_get(self, rb_intern("@queries"));
+  queries = rb_ivar_get(self, id_queries);
   if (TYPE(rb_hash_aref(queries, query)) == T_TRUE) {
     rb_hash_aset(queries, query, Qfalse);
     return Qtrue;
@@ -149,7 +174,7 @@ static void* check_query(struct dns_ctx *dns_context, void *rr, void *data)
   query    = ((struct resolver_query*)data)->query;
   xfree(data);
 
-  query_value_in_hash = rb_hash_delete(rb_ivar_get(resolver, rb_intern("@queries")), query);
+  query_value_in_hash = rb_hash_delete(rb_ivar_get(resolver, id_queries), query);
   /* Got response belongs to a query already removed (shouldn't occur). Ignore. */
   if (query_value_in_hash == Qnil) {
     if (rr) free(rr);
@@ -165,22 +190,22 @@ static void* check_query(struct dns_ctx *dns_context, void *rr, void *data)
     if (rr) free(rr);
     switch(status) {
       case DNS_E_TEMPFAIL:
-        error = ID2SYM(rb_intern("dns_error_tempfail"));
+        error = symbol_dns_error_tempfail;
         break;
       case DNS_E_PROTOCOL:
-        error = ID2SYM(rb_intern("dns_error_protocol"));
+        error = symbol_dns_error_protocol;
         break;
       case DNS_E_NXDOMAIN:
-        error = ID2SYM(rb_intern("dns_error_nxdomain"));
+        error = symbol_dns_error_nxdomain;
         break;
       case DNS_E_NODATA:
-        error = ID2SYM(rb_intern("dns_error_nodata"));
+        error = symbol_dns_error_nodata;
         break;
       default:
-        error = ID2SYM(rb_intern("dns_error_unknown"));
+        error = symbol_dns_error_unknown;
         break;
     }
-    rb_funcall(query, rb_intern("set_deferred_status"), 2, ID2SYM(rb_intern("failed")), error);
+    rb_funcall(query, method_set_deferred_status, 2, symbol_failed, error);
     return NULL;
   }
 
@@ -202,7 +227,7 @@ static void dns_result_A_cb(struct dns_ctx *dns_context, struct dns_rr_a4 *rr, v
     rb_ary_push(array, rb_str_new2((char *)dns_ntop(AF_INET, &(rr->dnsa4_addr[i].s_addr), ip, INET_ADDRSTRLEN)));
   free(rr);
 
-  rb_funcall(query, rb_intern("set_deferred_status"), 2, ID2SYM(rb_intern("succeeded")), array);
+  rb_funcall(query, method_set_deferred_status, 2, symbol_succeeded, array);
 }
 
 
@@ -220,7 +245,7 @@ static void dns_result_AAAA_cb(struct dns_ctx *dns_context, struct dns_rr_a6 *rr
     rb_ary_push(array, rb_str_new2((char *)dns_ntop(AF_INET6, &(rr->dnsa6_addr[i].s6_addr), ip, INET6_ADDRSTRLEN)));
   free(rr);
 
-  rb_funcall(query, rb_intern("set_deferred_status"), 2, ID2SYM(rb_intern("succeeded")), array);
+  rb_funcall(query, method_set_deferred_status, 2, symbol_succeeded, array);
 }
 
 
@@ -237,7 +262,7 @@ static void dns_result_PTR_cb(struct dns_ctx *dns_context, struct dns_rr_ptr *rr
     rb_ary_push(array, rb_str_new2(rr->dnsptr_ptr[i]));
   free(rr);
   
-  rb_funcall(query, rb_intern("set_deferred_status"), 2, ID2SYM(rb_intern("succeeded")), array);
+  rb_funcall(query, method_set_deferred_status, 2, symbol_succeeded, array);
 }
 
 
@@ -253,13 +278,13 @@ static void dns_result_MX_cb(struct dns_ctx *dns_context, struct dns_rr_mx *rr, 
   array = rb_ary_new2(rr->dnsmx_nrr);
   for(i = 0; i < rr->dnsmx_nrr; i++) {
     rr_mx = rb_obj_alloc(cRR_MX);
-    rb_ivar_set(rr_mx, rb_intern("@domain"), rb_str_new2(rr->dnsmx_mx[i].name));
-    rb_ivar_set(rr_mx, rb_intern("@priority"), INT2FIX(rr->dnsmx_mx[i].priority));
+    rb_ivar_set(rr_mx, id_domain, rb_str_new2(rr->dnsmx_mx[i].name));
+    rb_ivar_set(rr_mx, id_priority, INT2FIX(rr->dnsmx_mx[i].priority));
     rb_ary_push(array, rr_mx);
   }
   free(rr);
 
-  rb_funcall(query, rb_intern("set_deferred_status"), 2, ID2SYM(rb_intern("succeeded")), array);
+  rb_funcall(query, method_set_deferred_status, 2, symbol_succeeded, array);
 }
 
 
@@ -276,7 +301,7 @@ static void dns_result_TXT_cb(struct dns_ctx *dns_context, struct dns_rr_txt *rr
     rb_ary_push(array, rb_str_new(rr->dnstxt_txt[i].txt, rr->dnstxt_txt[i].len));
   free(rr);
 
-  rb_funcall(query, rb_intern("set_deferred_status"), 2, ID2SYM(rb_intern("succeeded")), array);
+  rb_funcall(query, method_set_deferred_status, 2, symbol_succeeded, array);
 }
 
 
@@ -292,15 +317,15 @@ static void dns_result_SRV_cb(struct dns_ctx *dns_context, struct dns_rr_srv *rr
   array = rb_ary_new2(rr->dnssrv_nrr);
   for(i = 0; i < rr->dnssrv_nrr; i++) {
     rr_srv = rb_obj_alloc(cRR_SRV);
-    rb_ivar_set(rr_srv, rb_intern("@domain"), rb_str_new2(rr->dnssrv_srv[i].name));
-    rb_ivar_set(rr_srv, rb_intern("@priority"), INT2FIX(rr->dnssrv_srv[i].priority));
-    rb_ivar_set(rr_srv, rb_intern("@weight"), INT2FIX(rr->dnssrv_srv[i].weight));
-    rb_ivar_set(rr_srv, rb_intern("@port"), INT2FIX(rr->dnssrv_srv[i].port));
+    rb_ivar_set(rr_srv, id_domain, rb_str_new2(rr->dnssrv_srv[i].name));
+    rb_ivar_set(rr_srv, id_priority, INT2FIX(rr->dnssrv_srv[i].priority));
+    rb_ivar_set(rr_srv, id_weight, INT2FIX(rr->dnssrv_srv[i].weight));
+    rb_ivar_set(rr_srv, id_port, INT2FIX(rr->dnssrv_srv[i].port));
     rb_ary_push(array, rr_srv);
   }
   free(rr);
 
-  rb_funcall(query, rb_intern("set_deferred_status"), 2, ID2SYM(rb_intern("succeeded")), array);
+  rb_funcall(query, method_set_deferred_status, 2, symbol_succeeded, array);
 }
 
 
@@ -316,23 +341,23 @@ static void dns_result_NAPTR_cb(struct dns_ctx *dns_context, struct dns_rr_naptr
   array = rb_ary_new2(rr->dnsnaptr_nrr);
   for(i = 0; i < rr->dnsnaptr_nrr; i++) {
     rr_naptr = rb_obj_alloc(cRR_NAPTR);
-    rb_ivar_set(rr_naptr, rb_intern("@order"), INT2FIX(rr->dnsnaptr_naptr[i].order));
-    rb_ivar_set(rr_naptr, rb_intern("@preference"), INT2FIX(rr->dnsnaptr_naptr[i].preference));
-    rb_ivar_set(rr_naptr, rb_intern("@flags"), rb_str_new2(rr->dnsnaptr_naptr[i].flags));
-    rb_ivar_set(rr_naptr, rb_intern("@service"), rb_str_new2(rr->dnsnaptr_naptr[i].service));
+    rb_ivar_set(rr_naptr, id_order, INT2FIX(rr->dnsnaptr_naptr[i].order));
+    rb_ivar_set(rr_naptr, id_preference, INT2FIX(rr->dnsnaptr_naptr[i].preference));
+    rb_ivar_set(rr_naptr, id_flags, rb_str_new2(rr->dnsnaptr_naptr[i].flags));
+    rb_ivar_set(rr_naptr, id_service, rb_str_new2(rr->dnsnaptr_naptr[i].service));
     if (strlen(rr->dnsnaptr_naptr[i].regexp) > 0)
-      rb_ivar_set(rr_naptr, rb_intern("@regexp"), rb_str_new2(rr->dnsnaptr_naptr[i].regexp));
+      rb_ivar_set(rr_naptr, id_regexp, rb_str_new2(rr->dnsnaptr_naptr[i].regexp));
     else
-      rb_ivar_set(rr_naptr, rb_intern("@regexp"), Qnil);
+      rb_ivar_set(rr_naptr, id_regexp, Qnil);
     if (strlen(rr->dnsnaptr_naptr[i].replacement) > 0)
-      rb_ivar_set(rr_naptr, rb_intern("@replacement"), rb_str_new2(rr->dnsnaptr_naptr[i].replacement));
+      rb_ivar_set(rr_naptr, id_replacement, rb_str_new2(rr->dnsnaptr_naptr[i].replacement));
     else
-      rb_ivar_set(rr_naptr, rb_intern("@replacement"), Qnil);
+      rb_ivar_set(rr_naptr, id_replacement, Qnil);
     rb_ary_push(array, rr_naptr);
   }
   free(rr);
 
-  rb_funcall(query, rb_intern("set_deferred_status"), 2, ID2SYM(rb_intern("succeeded")), array);
+  rb_funcall(query, method_set_deferred_status, 2, symbol_succeeded, array);
 }
 
 
@@ -375,7 +400,7 @@ VALUE Resolver_submit_A(VALUE self, VALUE rb_domain)
     raise_dns_error(dns_context);
   }
 
-  rb_hash_aset(rb_ivar_get(self, rb_intern("@queries")), query, Qtrue);
+  rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
   return query;
 }
 
@@ -400,7 +425,7 @@ VALUE Resolver_submit_AAAA(VALUE self, VALUE rb_domain)
     raise_dns_error(dns_context);
   }
 
-  rb_hash_aset(rb_ivar_get(self, rb_intern("@queries")), query, Qtrue);
+  rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
   return query;
 }
 
@@ -449,7 +474,7 @@ VALUE Resolver_submit_PTR(VALUE self, VALUE rb_ip)
       break;
   }
 
-  rb_hash_aset(rb_ivar_get(self, rb_intern("@queries")), query, Qtrue);
+  rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
   return query;
 }
 
@@ -474,7 +499,7 @@ VALUE Resolver_submit_MX(VALUE self, VALUE rb_domain)
     raise_dns_error(dns_context);
   }
 
-  rb_hash_aset(rb_ivar_get(self, rb_intern("@queries")), query, Qtrue);
+  rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
   return query;
 }
 
@@ -499,7 +524,7 @@ VALUE Resolver_submit_TXT(VALUE self, VALUE rb_domain)
     raise_dns_error(dns_context);
   }
 
-  rb_hash_aset(rb_ivar_get(self, rb_intern("@queries")), query, Qtrue);
+  rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
   return query;
 }
 
@@ -537,7 +562,7 @@ VALUE Resolver_submit_SRV(int argc, VALUE *argv, VALUE self)
     raise_dns_error(dns_context);
   }
   
-  rb_hash_aset(rb_ivar_get(self, rb_intern("@queries")), query, Qtrue);
+  rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
   return query;
 }
 
@@ -562,26 +587,26 @@ VALUE Resolver_submit_NAPTR(VALUE self, VALUE rb_domain)
     raise_dns_error(dns_context);
   }
 
-  rb_hash_aset(rb_ivar_get(self, rb_intern("@queries")), query, Qtrue);
+  rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
   return query;
 }
 
 
 /* Attribute readers. */
-VALUE RR_MX_domain(VALUE self)          { return rb_ivar_get(self, rb_intern("@domain")); }
-VALUE RR_MX_priority(VALUE self)        { return rb_ivar_get(self, rb_intern("@priority")); }
+VALUE RR_MX_domain(VALUE self)          { return rb_ivar_get(self, id_domain); }
+VALUE RR_MX_priority(VALUE self)        { return rb_ivar_get(self, id_priority); }
 
-VALUE RR_SRV_priority(VALUE self)       { return rb_ivar_get(self, rb_intern("@priority")); }
-VALUE RR_SRV_weight(VALUE self)         { return rb_ivar_get(self, rb_intern("@weight")); }
-VALUE RR_SRV_port(VALUE self)           { return rb_ivar_get(self, rb_intern("@port")); }
-VALUE RR_SRV_domain(VALUE self)         { return rb_ivar_get(self, rb_intern("@domain")); }
+VALUE RR_SRV_priority(VALUE self)       { return rb_ivar_get(self, id_priority); }
+VALUE RR_SRV_weight(VALUE self)         { return rb_ivar_get(self, id_weight); }
+VALUE RR_SRV_port(VALUE self)           { return rb_ivar_get(self, id_port); }
+VALUE RR_SRV_domain(VALUE self)         { return rb_ivar_get(self, id_domain); }
 
-VALUE RR_NAPTR_order(VALUE self)        { return rb_ivar_get(self, rb_intern("@order")); }
-VALUE RR_NAPTR_preference(VALUE self)   { return rb_ivar_get(self, rb_intern("@preference")); }
-VALUE RR_NAPTR_flags(VALUE self)        { return rb_ivar_get(self, rb_intern("@flags")); }
-VALUE RR_NAPTR_service(VALUE self)      { return rb_ivar_get(self, rb_intern("@service")); }
-VALUE RR_NAPTR_regexp(VALUE self)       { return rb_ivar_get(self, rb_intern("@regexp")); }
-VALUE RR_NAPTR_replacement(VALUE self)  { return rb_ivar_get(self, rb_intern("@replacement")); }
+VALUE RR_NAPTR_order(VALUE self)        { return rb_ivar_get(self, id_order); }
+VALUE RR_NAPTR_preference(VALUE self)   { return rb_ivar_get(self, id_preference); }
+VALUE RR_NAPTR_flags(VALUE self)        { return rb_ivar_get(self, id_flags); }
+VALUE RR_NAPTR_service(VALUE self)      { return rb_ivar_get(self, id_service); }
+VALUE RR_NAPTR_regexp(VALUE self)       { return rb_ivar_get(self, id_regexp); }
+VALUE RR_NAPTR_replacement(VALUE self)  { return rb_ivar_get(self, id_replacement); }
 
 
 void Init_em_udns_ext()
@@ -631,4 +656,29 @@ void Init_em_udns_ext()
   rb_define_method(cRR_NAPTR, "service", RR_NAPTR_service, 0);
   rb_define_method(cRR_NAPTR, "regexp", RR_NAPTR_regexp, 0);
   rb_define_method(cRR_NAPTR, "replacement", RR_NAPTR_replacement, 0);
+
+  id_timer = rb_intern("@timer");
+  id_queries = rb_intern("@queries");
+  id_domain = rb_intern("@domain");
+  id_priority = rb_intern("@priority");
+  id_weight = rb_intern("@weight");
+  id_port = rb_intern("@port");
+  id_order = rb_intern("@order");
+  id_preference = rb_intern("@preference");
+  id_flags = rb_intern("@flags");
+  id_service = rb_intern("@service");
+  id_regexp = rb_intern("@regexp");
+  id_replacement = rb_intern("@replacement");
+
+  symbol_dns_error_tempfail = ID2SYM(rb_intern("dns_error_tempfail"));
+  symbol_dns_error_protocol = ID2SYM(rb_intern("dns_error_protocol"));
+  symbol_dns_error_nxdomain = ID2SYM(rb_intern("dns_error_nxdomain"));
+  symbol_dns_error_nodata = ID2SYM(rb_intern("dns_error_nodata"));
+  symbol_dns_error_unknown = ID2SYM(rb_intern("dns_error_unknown"));
+  symbol_failed = ID2SYM(rb_intern("failed"));
+  symbol_succeeded = ID2SYM(rb_intern("succeeded"));
+
+  method_cancel = rb_intern("cancel");
+  method_set_timer = rb_intern("set_timer");
+  method_set_deferred_status = rb_intern("set_deferred_status");
 }
