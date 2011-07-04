@@ -56,7 +56,7 @@ Example 2:
 
     resolver = EM::Udns::Resolver.new
 
-Returns a `EM::Udns::Resolver` instance.
+Returns a `EM::Udns::Resolver` instance. If there is an error an exception `EM::Udns::UdnsError` is raised.
 
     
 ## Runnig a Resolver
@@ -72,7 +72,7 @@ Attaches the UDP socket of the resolver to EventMachine. This method must be cal
 
 DNS queries are performed by invoking `EM::Udns::Resolver#submit_XXX(parameters)` methods on the resolver. The complete list of `submit_XXX` methods are shown below. These methods return a `EM::Udns::Query` instance which includes `EM::Deferrable` module. Callback and errback can then be assigned to the `Query` object as usual.
 
-In case of success, callback is invoked on the  `EM::Udns::Query` object passing the DNS result object as single argument. Definition of those objects are shown below.
+In case of success, callback is invoked on the `EM::Udns::Query` object passing the DNS result object as single argument. Definition of those objects are shown below.
 
 In case of error, errback is invoked with the exact error as single argument, which is a Ruby Symbol:
 
@@ -80,14 +80,9 @@ In case of error, errback is invoked with the exact error as single argument, wh
  * `:dns_error_nodata` - The domain exists, but has no data of requested type.
  * `:dns_error_tempfail` - Temporary error, the resolver nameserver was not able to process our query or timed out.
  * `:dns_error_protocol` - Protocol error, a nameserver returned malformed reply.
-
-In same cases `submit_XXX` method could raise an exception when it's invoked:
-
- * `EM::Udns::UdnsBadQuery` - Bad query, name of dn is invalid.
- * `EM::Udns::UdnsNoMem` - No memory available to allocate query structure.
- * `EM::Udns::UdnsTempFail` - Internal error occured.
-
-All these exceptions inherit from `EM::Udns::UdnsError`.
+ * `:dns_error_badquery` - Bad query, name of dn is invalid.
+ * `:dns_error_nomem` - No memory available to allocate query structure.
+ * `:dns_error_unknown` - An unknown error has occurred.
 
 
 ## Type Specific Queries

@@ -16,9 +16,6 @@ static VALUE cRR_SRV;
 static VALUE cRR_NAPTR;
 
 static VALUE eUdnsError;
-static VALUE eUdnsTempFail;
-static VALUE eUdnsNoMem;
-static VALUE eUdnsBadQuery;
 
 static ID id_timer;
 static ID id_queries;
@@ -37,6 +34,9 @@ static VALUE symbol_dns_error_tempfail;
 static VALUE symbol_dns_error_protocol;
 static VALUE symbol_dns_error_nxdomain;
 static VALUE symbol_dns_error_nodata;
+static VALUE symbol_dns_error_unknown;
+static VALUE symbol_dns_error_badquery;
+static VALUE symbol_dns_error_nomem;
 static VALUE symbol_dns_error_unknown;
 static VALUE symbol_failed;
 static VALUE symbol_succeeded;
@@ -361,20 +361,20 @@ static void dns_result_NAPTR_cb(struct dns_ctx *dns_context, struct dns_rr_naptr
 }
 
 
-void raise_dns_error(struct dns_ctx *dns_context)
+VALUE get_dns_error(struct dns_ctx *dns_context)
 {
   switch(dns_status(dns_context)) {
     case DNS_E_TEMPFAIL:
-      rb_raise(eUdnsTempFail, "internal error occured");
+      return symbol_dns_error_tempfail;
       break;
     case DNS_E_NOMEM:
-      rb_raise(eUdnsNoMem, "no memory available to allocate query structure");
+      return symbol_dns_error_nomem;
       break;
     case DNS_E_BADQUERY:
-      rb_raise(eUdnsBadQuery, "name of dn is invalid");
+      return symbol_dns_error_badquery;
       break;
     default:
-      rb_raise(eUdnsError, "udns `dns_status' returns unexpected error %i", dns_status(dns_context));
+      return symbol_dns_error_unknown;
       break;
   }
 }
@@ -385,7 +385,9 @@ VALUE Resolver_submit_A(VALUE self, VALUE rb_domain)
   struct dns_ctx *dns_context;
   char *domain;
   VALUE query;
+  VALUE error;
   struct resolver_query *data;
+
   
   Data_Get_Struct(self, struct dns_ctx, dns_context);
   domain = StringValueCStr(rb_domain);
@@ -396,11 +398,14 @@ VALUE Resolver_submit_A(VALUE self, VALUE rb_domain)
   data->query = query;
   
   if (!dns_submit_a4(dns_context, domain, 0, dns_result_A_cb, (void *)data)) {
+    error = get_dns_error(dns_context);
     xfree(data);
-    raise_dns_error(dns_context);
+    rb_funcall(query, method_set_deferred_status, 2, symbol_failed, error);
   }
-
-  rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
+  else {
+    rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
+  }
+  
   return query;
 }
 
@@ -410,6 +415,7 @@ VALUE Resolver_submit_AAAA(VALUE self, VALUE rb_domain)
   struct dns_ctx *dns_context;
   char *domain;
   VALUE query;
+  VALUE error;
   struct resolver_query *data;
 
   Data_Get_Struct(self, struct dns_ctx, dns_context);
@@ -421,11 +427,14 @@ VALUE Resolver_submit_AAAA(VALUE self, VALUE rb_domain)
   data->query = query;
 
   if (!dns_submit_a6(dns_context, domain, 0, dns_result_AAAA_cb, (void *)data)) {
+    error = get_dns_error(dns_context);
     xfree(data);
-    raise_dns_error(dns_context);
+    rb_funcall(query, method_set_deferred_status, 2, symbol_failed, error);
   }
-
-  rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
+  else {
+    rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
+  }
+  
   return query;
 }
 
@@ -435,6 +444,7 @@ VALUE Resolver_submit_PTR(VALUE self, VALUE rb_ip)
   struct dns_ctx *dns_context;
   char *ip;
   VALUE query;
+  VALUE error;
   struct resolver_query *data;
   struct in_addr addr;
   struct in6_addr addr6;
@@ -451,8 +461,12 @@ VALUE Resolver_submit_PTR(VALUE self, VALUE rb_ip)
     /* It's valid IPv4. */
     case 1:
       if (!dns_submit_a4ptr(dns_context, &addr, dns_result_PTR_cb, (void *)data)) {
+        error = get_dns_error(dns_context);
         xfree(data);
-        raise_dns_error(dns_context);
+        rb_funcall(query, method_set_deferred_status, 2, symbol_failed, error);
+      }
+      else {
+        rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
       }
       break;
     /* Invalid IPv4, let's try with IPv6. */
@@ -461,20 +475,23 @@ VALUE Resolver_submit_PTR(VALUE self, VALUE rb_ip)
         /* It's valid IPv6. */
         case 1:
           if (!dns_submit_a6ptr(dns_context, &addr6, dns_result_PTR_cb, (void *)data)) {
+            error = get_dns_error(dns_context);
             xfree(data);
-            raise_dns_error(dns_context);
+            rb_funcall(query, method_set_deferred_status, 2, symbol_failed, error);
+          }
+          else {
+            rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
           }
           break;
-        /* Also an invalid IPv6 so raise an exception. */
+        /* Also an invalid IPv6 so the IP is invalid. */
         case 0:
           xfree(data);
-          rb_raise(rb_eArgError, "invalid IP '%s' (neither IPv4 or IPv6)", ip);
+          rb_funcall(query, method_set_deferred_status, 2, symbol_failed, symbol_dns_error_badquery);
           break;
       }
       break;
   }
 
-  rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
   return query;
 }
 
@@ -484,6 +501,7 @@ VALUE Resolver_submit_MX(VALUE self, VALUE rb_domain)
   struct dns_ctx *dns_context;
   char *domain;
   VALUE query;
+  VALUE error;
   struct resolver_query *data;
 
   Data_Get_Struct(self, struct dns_ctx, dns_context);
@@ -495,11 +513,14 @@ VALUE Resolver_submit_MX(VALUE self, VALUE rb_domain)
   data->query = query;
 
   if (!dns_submit_mx(dns_context, domain, 0, dns_result_MX_cb, (void *)data)) {
+    error = get_dns_error(dns_context);
     xfree(data);
-    raise_dns_error(dns_context);
+    rb_funcall(query, method_set_deferred_status, 2, symbol_failed, error);
   }
-
-  rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
+  else {
+    rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
+  }
+  
   return query;
 }
 
@@ -509,6 +530,7 @@ VALUE Resolver_submit_TXT(VALUE self, VALUE rb_domain)
   struct dns_ctx *dns_context;
   char *domain;
   VALUE query;
+  VALUE error;
   struct resolver_query *data;
 
   Data_Get_Struct(self, struct dns_ctx, dns_context);
@@ -520,11 +542,14 @@ VALUE Resolver_submit_TXT(VALUE self, VALUE rb_domain)
   data->query = query;
 
   if (!dns_submit_txt(dns_context, domain, DNS_C_IN, 0, dns_result_TXT_cb, (void *)data)) {
+    error = get_dns_error(dns_context);
     xfree(data);
-    raise_dns_error(dns_context);
+    rb_funcall(query, method_set_deferred_status, 2, symbol_failed, error);
   }
-
-  rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
+  else {
+    rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
+  }
+  
   return query;
 }
 
@@ -536,6 +561,7 @@ VALUE Resolver_submit_SRV(int argc, VALUE *argv, VALUE self)
   char *service = NULL;
   char *protocol = NULL;
   VALUE query;
+  VALUE error;
   struct resolver_query *data;
 
   if (argc == 1 && TYPE(argv[0]) == T_STRING);
@@ -558,11 +584,14 @@ VALUE Resolver_submit_SRV(int argc, VALUE *argv, VALUE self)
   data->query = query;
   
   if (!dns_submit_srv(dns_context, domain, service, protocol, 0, dns_result_SRV_cb, (void *)data)) {
+    error = get_dns_error(dns_context);
     xfree(data);
-    raise_dns_error(dns_context);
+    rb_funcall(query, method_set_deferred_status, 2, symbol_failed, error);
+  }
+  else {
+    rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
   }
   
-  rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
   return query;
 }
 
@@ -572,6 +601,7 @@ VALUE Resolver_submit_NAPTR(VALUE self, VALUE rb_domain)
   struct dns_ctx *dns_context;
   char *domain;
   VALUE query;
+  VALUE error;
   struct resolver_query *data;
 
   Data_Get_Struct(self, struct dns_ctx, dns_context);
@@ -583,11 +613,14 @@ VALUE Resolver_submit_NAPTR(VALUE self, VALUE rb_domain)
   data->query = query;
 
   if (!dns_submit_naptr(dns_context, domain, 0, dns_result_NAPTR_cb, (void *)data)) {
+    error = get_dns_error(dns_context);
     xfree(data);
-    raise_dns_error(dns_context);
+    rb_funcall(query, method_set_deferred_status, 2, symbol_failed, error);
   }
-
-  rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
+  else {
+    rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
+  }
+  
   return query;
 }
 
@@ -616,9 +649,6 @@ void Init_em_udns_ext()
   mUdns = rb_define_module_under(mEm, "Udns");
 
   eUdnsError    = rb_define_class_under(mUdns, "UdnsError", rb_eStandardError);
-  eUdnsTempFail = rb_define_class_under(mUdns, "UdnsTempFail", eUdnsError);
-  eUdnsNoMem    = rb_define_class_under(mUdns, "UdnsNoMem", eUdnsError);
-  eUdnsBadQuery = rb_define_class_under(mUdns, "UdnsBadQuery", eUdnsError);
 
   cResolver = rb_define_class_under(mUdns, "Resolver", rb_cObject);
   rb_define_alloc_func(cResolver, Resolver_alloc);
@@ -674,6 +704,9 @@ void Init_em_udns_ext()
   symbol_dns_error_protocol = ID2SYM(rb_intern("dns_error_protocol"));
   symbol_dns_error_nxdomain = ID2SYM(rb_intern("dns_error_nxdomain"));
   symbol_dns_error_nodata = ID2SYM(rb_intern("dns_error_nodata"));
+  symbol_dns_error_unknown = ID2SYM(rb_intern("dns_error_unknown"));
+  symbol_dns_error_badquery = ID2SYM(rb_intern("dns_error_badquery"));
+  symbol_dns_error_nomem = ID2SYM(rb_intern("dns_error_nomem"));
   symbol_dns_error_unknown = ID2SYM(rb_intern("dns_error_unknown"));
   symbol_failed = ID2SYM(rb_intern("failed"));
   symbol_succeeded = ID2SYM(rb_intern("succeeded"));

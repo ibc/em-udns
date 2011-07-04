@@ -1,7 +1,6 @@
 module EventMachine::Udns
 
   class Resolver
-
     def initialize
       raise UdnsError, @alloc_error if @alloc_error
       @queries = {}
@@ -14,7 +13,6 @@ module EventMachine::Udns
       end
     end
     private :set_timer
-
   end
 
 end

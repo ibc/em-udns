@@ -1,5 +1,7 @@
 #!/usr/bin/ruby
 
+$0 = "test-em-udns.rb"
+
 require "rubygems"
 require "em-udns"
 
@@ -98,7 +100,7 @@ EM.run do
       result.each do |rr|
         puts "- #{rr.inspect}"
       end
-      puts "(sent: #{sent} / recv: #{recv})"
+      puts "(active queries: #{resolver.active} / sent: #{sent} / recv: #{recv})"
       if recv == times
         print_info(times, time_start)
         exit
@@ -107,7 +109,7 @@ EM.run do
 
     query.errback do |error|
       recv += 1
-      puts "#{Time.now} INFO: errback: error => #{error.inspect}  (sent: #{sent} / recv: #{recv})"
+      puts "#{Time.now} INFO: errback: error => #{error.inspect}  (active queries: #{resolver.active} / sent: #{sent} / recv: #{recv})"
       if recv == times
         print_info(times, time_start)
         exit
