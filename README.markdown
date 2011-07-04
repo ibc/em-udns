@@ -152,7 +152,7 @@ Callback is called with argument:
 
     resolver.submit_PTR(ip)
 
-Argument ip must be a `String` representing a IPv4 or IPv6 (if not, `ArgumentError` exception would be raised). In case of success the callback is invoked passing as argument an array of `String` objects. Each `String` represents a domain.
+Argument ip must be a `String` representing a IPv4 or IPv6. In case of success the callback is invoked passing as argument an array of `String` objects. Each `String` represents a domain.
 
 Example 1:
 
