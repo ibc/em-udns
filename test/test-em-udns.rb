@@ -73,46 +73,47 @@ EM.run do
   timer = EM::PeriodicTimer.new(0) do
     if sent == times
       timer.cancel
+
     else
       sent += 1
-    end
-
-    query = case type
-      when "A"
-        resolver.submit_A name
-      when "AAAA"
-        resolver.submit_AAAA name
-      when "PTR"
-        resolver.submit_PTR name
-      when "MX"
-        resolver.submit_MX name
-      when "TXT"
-        resolver.submit_TXT name
-      when "SRV"
-        resolver.submit_SRV name, service, protocol
-      when "NAPTR"
-        resolver.submit_NAPTR name
-    end
-
-    query.callback do |result|
-      recv += 1
-      puts "#{Time.now} INFO: callback: result =>"
-      result.each do |rr|
-        puts "- #{rr.inspect}"
+    
+      query = case type
+        when "A"
+          resolver.submit_A name
+        when "AAAA"
+          resolver.submit_AAAA name
+        when "PTR"
+          resolver.submit_PTR name
+        when "MX"
+          resolver.submit_MX name
+        when "TXT"
+          resolver.submit_TXT name
+        when "SRV"
+          resolver.submit_SRV name, service, protocol
+        when "NAPTR"
+          resolver.submit_NAPTR name
       end
-      puts "(active queries: #{resolver.active} / sent: #{sent} / recv: #{recv})"
-      if recv == times
-        print_info(times, time_start)
-        exit
-      end
-    end
 
-    query.errback do |error|
-      recv += 1
-      puts "#{Time.now} INFO: errback: error => #{error.inspect}  (active queries: #{resolver.active} / sent: #{sent} / recv: #{recv})"
-      if recv == times
-        print_info(times, time_start)
-        exit
+      query.callback do |result|
+        recv += 1
+        puts "#{Time.now} INFO: callback: result =>"
+        result.each do |rr|
+          puts "- #{rr.inspect}"
+        end
+        puts "(active queries: #{resolver.active} / sent: #{sent} / recv: #{recv})"
+        if recv == times
+          print_info(times, time_start)
+          exit
+        end
+      end
+
+      query.errback do |error|
+        recv += 1
+        puts "#{Time.now} INFO: errback: error => #{error.inspect}  (active queries: #{resolver.active} / sent: #{sent} / recv: #{recv})"
+        if recv == times
+          print_info(times, time_start)
+          exit
+        end
       end
     end
 
