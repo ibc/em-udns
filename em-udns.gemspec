@@ -20,7 +20,7 @@ Gem::Specification.new do |spec|
     ext/em-udns.c
     ext/em-udns.h
     ext/extconf.rb
-    ext/udns-0.1.tar.gz
+    ext/udns-0.1.tar-patched.gz
     test/test-em-udns.rb
   }
   spec.require_paths = ["lib"]

@@ -275,7 +275,7 @@ EM-Udns is tested under the following platforms:
 
  * Linux 32 bits
  * Linux 64 bits
- * Mac OSX 32 bits
+ * Mac OSX 32 and 64 bits should work after version 0.2.5 which fixes [issue 1](https://github.com/ibc/em-udns/issues#issue/1)
 
 See also the [extconf.rb](https://github.com/ibc/em-udns/blob/master/ext/extconf.rb) file which compiles udns C library according to current platform.
 

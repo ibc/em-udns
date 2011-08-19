@@ -44,9 +44,10 @@ Dir.chdir(here) do
       sys("ar r libudns.a *.lo")
       
     # Mac OSX.
-    # TODO: This is tested under OSX 32 bits, it could fail under OSX 64 bits (not tested).
+    # TODO: https://github.com/ibc/em-udns/issues#issue/1
     when /darwin|mac os/
-      sys("make libudns.a")
+      sys("make dylib")
+      sys("ar r libudns.a *.lo")
 
     # Windows.
     # NOTE: udns doesn't work on Windows, but there is a port:
