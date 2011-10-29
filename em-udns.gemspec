@@ -19,6 +19,7 @@ Gem::Specification.new do |spec|
     lib/em-udns.rb
     lib/em-udns/version.rb
     lib/em-udns/resolver.rb
+    lib/em-udns/query.rb
     ext/em-udns.c
     ext/em-udns.h
     ext/extconf.rb

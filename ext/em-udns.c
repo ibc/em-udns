@@ -7,7 +7,6 @@
 
 
 static VALUE mEm;
-static VALUE mEmDeferrable;
 static VALUE mUdns;
 
 static VALUE cResolver;
@@ -40,12 +39,11 @@ static VALUE symbol_dns_error_unknown;
 static VALUE symbol_dns_error_badquery;
 static VALUE symbol_dns_error_nomem;
 static VALUE symbol_dns_error_unknown;
-static VALUE symbol_failed;
-static VALUE symbol_succeeded;
 
 static ID method_cancel;
 static ID method_set_timer;
-static ID method_set_deferred_status;
+static ID method_do_success;
+static ID method_do_error;
 
 
 void Resolver_free(struct dns_ctx *dns_context)
@@ -207,7 +205,7 @@ static void* check_query(struct dns_ctx *dns_context, void *rr, void *data)
         error = symbol_dns_error_unknown;
         break;
     }
-    rb_funcall(query, method_set_deferred_status, 2, symbol_failed, error);
+    rb_funcall(query, method_do_error, 1, error);
     return NULL;
   }
 
@@ -229,7 +227,7 @@ static void dns_result_A_cb(struct dns_ctx *dns_context, struct dns_rr_a4 *rr, v
     rb_ary_push(array, rb_str_new2((char *)dns_ntop(AF_INET, &(rr->dnsa4_addr[i].s_addr), ip, INET_ADDRSTRLEN)));
   free(rr);
 
-  rb_funcall(query, method_set_deferred_status, 2, symbol_succeeded, array);
+  rb_funcall(query, method_do_success, 1, array);
 }
 
 
@@ -247,7 +245,7 @@ static void dns_result_AAAA_cb(struct dns_ctx *dns_context, struct dns_rr_a6 *rr
     rb_ary_push(array, rb_str_new2((char *)dns_ntop(AF_INET6, &(rr->dnsa6_addr[i].s6_addr), ip, INET6_ADDRSTRLEN)));
   free(rr);
 
-  rb_funcall(query, method_set_deferred_status, 2, symbol_succeeded, array);
+  rb_funcall(query, method_do_success, 1, array);
 }
 
 
@@ -264,7 +262,7 @@ static void dns_result_PTR_cb(struct dns_ctx *dns_context, struct dns_rr_ptr *rr
     rb_ary_push(array, rb_str_new2(rr->dnsptr_ptr[i]));
   free(rr);
   
-  rb_funcall(query, method_set_deferred_status, 2, symbol_succeeded, array);
+  rb_funcall(query, method_do_success, 1, array);
 }
 
 
@@ -286,7 +284,7 @@ static void dns_result_MX_cb(struct dns_ctx *dns_context, struct dns_rr_mx *rr, 
   }
   free(rr);
 
-  rb_funcall(query, method_set_deferred_status, 2, symbol_succeeded, array);
+  rb_funcall(query, method_do_success, 1, array);
 }
 
 
@@ -303,7 +301,7 @@ static void dns_result_TXT_cb(struct dns_ctx *dns_context, struct dns_rr_txt *rr
     rb_ary_push(array, rb_str_new(rr->dnstxt_txt[i].txt, rr->dnstxt_txt[i].len));
   free(rr);
 
-  rb_funcall(query, method_set_deferred_status, 2, symbol_succeeded, array);
+  rb_funcall(query, method_do_success, 1, array);
 }
 
 
@@ -327,7 +325,7 @@ static void dns_result_SRV_cb(struct dns_ctx *dns_context, struct dns_rr_srv *rr
   }
   free(rr);
 
-  rb_funcall(query, method_set_deferred_status, 2, symbol_succeeded, array);
+  rb_funcall(query, method_do_success, 1, array);
 }
 
 
@@ -359,7 +357,7 @@ static void dns_result_NAPTR_cb(struct dns_ctx *dns_context, struct dns_rr_naptr
   }
   free(rr);
 
-  rb_funcall(query, method_set_deferred_status, 2, symbol_succeeded, array);
+  rb_funcall(query, method_do_success, 1, array);
 }
 
 
@@ -402,7 +400,7 @@ VALUE Resolver_submit_A(VALUE self, VALUE rb_domain)
   if (!dns_submit_a4(dns_context, domain, 0, dns_result_A_cb, (void *)data)) {
     error = get_dns_error(dns_context);
     xfree(data);
-    rb_funcall(query, method_set_deferred_status, 2, symbol_failed, error);
+    rb_funcall(query, method_do_error, 1, error);
   }
   else {
     rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
@@ -431,7 +429,7 @@ VALUE Resolver_submit_AAAA(VALUE self, VALUE rb_domain)
   if (!dns_submit_a6(dns_context, domain, 0, dns_result_AAAA_cb, (void *)data)) {
     error = get_dns_error(dns_context);
     xfree(data);
-    rb_funcall(query, method_set_deferred_status, 2, symbol_failed, error);
+    rb_funcall(query, method_do_error, 1, error);
   }
   else {
     rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
@@ -465,7 +463,7 @@ VALUE Resolver_submit_PTR(VALUE self, VALUE rb_ip)
       if (!dns_submit_a4ptr(dns_context, &addr, dns_result_PTR_cb, (void *)data)) {
         error = get_dns_error(dns_context);
         xfree(data);
-        rb_funcall(query, method_set_deferred_status, 2, symbol_failed, error);
+        rb_funcall(query, method_do_error, 1, error);
       }
       else {
         rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
@@ -479,7 +477,7 @@ VALUE Resolver_submit_PTR(VALUE self, VALUE rb_ip)
           if (!dns_submit_a6ptr(dns_context, &addr6, dns_result_PTR_cb, (void *)data)) {
             error = get_dns_error(dns_context);
             xfree(data);
-            rb_funcall(query, method_set_deferred_status, 2, symbol_failed, error);
+            rb_funcall(query, method_do_error, 1, error);
           }
           else {
             rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
@@ -488,7 +486,7 @@ VALUE Resolver_submit_PTR(VALUE self, VALUE rb_ip)
         /* Also an invalid IPv6 so the IP is invalid. */
         case 0:
           xfree(data);
-          rb_funcall(query, method_set_deferred_status, 2, symbol_failed, symbol_dns_error_badquery);
+          rb_funcall(query, method_do_error, 1, symbol_dns_error_badquery);
           break;
       }
       break;
@@ -517,7 +515,7 @@ VALUE Resolver_submit_MX(VALUE self, VALUE rb_domain)
   if (!dns_submit_mx(dns_context, domain, 0, dns_result_MX_cb, (void *)data)) {
     error = get_dns_error(dns_context);
     xfree(data);
-    rb_funcall(query, method_set_deferred_status, 2, symbol_failed, error);
+    rb_funcall(query, method_do_error, 1, error);
   }
   else {
     rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
@@ -546,7 +544,7 @@ VALUE Resolver_submit_TXT(VALUE self, VALUE rb_domain)
   if (!dns_submit_txt(dns_context, domain, DNS_C_IN, 0, dns_result_TXT_cb, (void *)data)) {
     error = get_dns_error(dns_context);
     xfree(data);
-    rb_funcall(query, method_set_deferred_status, 2, symbol_failed, error);
+    rb_funcall(query, method_do_error, 1, error);
   }
   else {
     rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
@@ -588,7 +586,7 @@ VALUE Resolver_submit_SRV(int argc, VALUE *argv, VALUE self)
   if (!dns_submit_srv(dns_context, domain, service, protocol, 0, dns_result_SRV_cb, (void *)data)) {
     error = get_dns_error(dns_context);
     xfree(data);
-    rb_funcall(query, method_set_deferred_status, 2, symbol_failed, error);
+    rb_funcall(query, method_do_error, 1, error);
   }
   else {
     rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
@@ -617,7 +615,7 @@ VALUE Resolver_submit_NAPTR(VALUE self, VALUE rb_domain)
   if (!dns_submit_naptr(dns_context, domain, 0, dns_result_NAPTR_cb, (void *)data)) {
     error = get_dns_error(dns_context);
     xfree(data);
-    rb_funcall(query, method_set_deferred_status, 2, symbol_failed, error);
+    rb_funcall(query, method_do_error, 1, error);
   }
   else {
     rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
@@ -647,10 +645,8 @@ VALUE RR_NAPTR_replacement(VALUE self)  { return rb_ivar_get(self, id_replacemen
 void Init_em_udns_ext()
 {
   mEm = rb_define_module("EventMachine");
-  mEmDeferrable = rb_define_module_under(mEm, "Deferrable");
   mUdns = rb_define_module_under(mEm, "Udns");
-
-  eUdnsError    = rb_define_class_under(mUdns, "UdnsError", rb_eStandardError);
+  eUdnsError = rb_define_class_under(mUdns, "UdnsError", rb_eStandardError);
 
   cResolver = rb_define_class_under(mUdns, "Resolver", rb_cObject);
   rb_define_alloc_func(cResolver, Resolver_alloc);
@@ -669,7 +665,6 @@ void Init_em_udns_ext()
   rb_define_method(cResolver, "submit_NAPTR", Resolver_submit_NAPTR, 1);
 
   cQuery = rb_define_class_under(mUdns, "Query", rb_cObject);
-  rb_include_module(cQuery, mEmDeferrable);
 
   cRR_MX = rb_define_class_under(mUdns, "RR_MX", rb_cObject);
   rb_define_method(cRR_MX, "domain", RR_MX_domain, 0);
@@ -710,10 +705,9 @@ void Init_em_udns_ext()
   symbol_dns_error_badquery = ID2SYM(rb_intern("dns_error_badquery"));
   symbol_dns_error_nomem = ID2SYM(rb_intern("dns_error_nomem"));
   symbol_dns_error_unknown = ID2SYM(rb_intern("dns_error_unknown"));
-  symbol_failed = ID2SYM(rb_intern("failed"));
-  symbol_succeeded = ID2SYM(rb_intern("succeeded"));
 
   method_cancel = rb_intern("cancel");
   method_set_timer = rb_intern("set_timer");
-  method_set_deferred_status = rb_intern("set_deferred_status");
+  method_do_success = rb_intern("do_success");
+  method_do_error = rb_intern("do_error");
 }
