@@ -43,6 +43,8 @@ This class method set the nameservers list to use for all the `EM::Udns::Resolve
 
 IMPORTANT: This class method must be used before initializing any `EM::Udns::Resolver` instance.
 
+NOTE: Nameservers must be IPv4 addresses since [udns](http://www.corpit.ru/mjt/udns.html) does not listen in IPv6.
+
 Example 1:
 
     EM::Udns.nameservers = "127.0.0.1"
@@ -70,11 +72,11 @@ Attaches the UDP socket of the resolver to EventMachine. This method must be cal
 
     resolver.submit_XXX(parameters)
 
-DNS queries are performed by invoking `EM::Udns::Resolver#submit_XXX(parameters)` methods on the resolver. The complete list of `submit_XXX` methods are shown below. These methods return a `EM::Udns::Query` instance which includes `EM::Deferrable` module. Callback and errback can then be assigned to the `Query` object as usual.
+DNS queries are performed by invoking `EM::Udns::Resolver#submit_XXX(parameters)` methods on the resolver. The complete list of `submit_XXX` methods are shown below. These methods return a `EM::Udns::Query` instance. Callback and errback can then be assigned to the `Query` object via the `callback` and `errback` methods which accept a code block as single argument.
 
-In case of success, callback is invoked on the `EM::Udns::Query` object passing the DNS result object as single argument. Definition of those objects are shown below.
+In case of success, the callback code block is invoked on the `EM::Udns::Query` object passing the DNS result object as single argument. Definition of those objects are shown below.
 
-In case of error, errback is invoked with the exact error as single argument, which is a Ruby Symbol:
+In case of error, the errback code block is invoked with the exact error as single argument, which is a Ruby Symbol:
 
  * `:dns_error_nxdomain` - The domain name does not exist.
  * `:dns_error_nodata` - The domain exists, but has no data of requested type.
