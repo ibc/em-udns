@@ -6,7 +6,7 @@ Gem::Specification.new do |spec|
   spec.name = "em-udns"
   spec.version = EventMachine::Udns::VERSION
   spec.date = Time.now
-  spec.authors = ["Iñaki Baz Castillo"]
+  spec.authors = ["Inaki Baz Castillo"]
   spec.email = "ibc@aliax.net"
   spec.summary = "Async DNS resolver for EventMachine based on udns C library"
   spec.homepage = "https://github.com/ibc/em-udns"
