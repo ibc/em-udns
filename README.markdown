@@ -3,7 +3,7 @@
 * Home page: http://ibc.github.com/em-udns/
 
 
-## Introduction
+## Overview
 
 EM-Udns is an async DNS resolver for [EventMachine](http://rubyeventmachine.com) based on [udns](http://www.corpit.ru/mjt/udns.html) C library. Having most of the code written in C, EM-Udns becomes very fast. It can resolve DNS A, AAAA, PTR, MX, TXT, SRV and NAPTR records, and can handle every kind of errors (domain/record not found, request timeout, malformed response...).
 
