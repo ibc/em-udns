@@ -280,9 +280,8 @@ EM-Udns is provided as a Ruby Gem:
 
 EM-Udns is tested under the following platforms:
 
- * Linux 32 bits
- * Linux 64 bits
- * Mac OSX 32 and 64 bits should work after version 0.2.5 which fixes [issue 1](https://github.com/ibc/em-udns/issues#issue/1)
+ * Linux 32 and 64 bits
+ * Mac OSX 32 and 64 bits
 
 See also the [extconf.rb](https://github.com/ibc/em-udns/blob/master/ext/extconf.rb) file which compiles udns C library according to current platform.
 
@@ -290,7 +289,6 @@ See also the [extconf.rb](https://github.com/ibc/em-udns/blob/master/ext/extconf
 ## TODO
 
  * Testing on other platforms.
- * Improving the integration of udns C library sources into EM-Udns gem (see the [open report](https://github.com/ibc/em-udns/issues#issue/1)).
 
 
 ## Acknowledgement
