@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+
+    <title>EM-Udns by ibc</title>
+  </head>
+
+  <body>
+
+    <header>
+      <div class="container">
+        <h1>EM-Udns</h1>
+        <h2>An async DNS resolver for EventMachine based on udns C library</h2>
+
+        <section id="downloads">
+          <a href="https://github.com/ibc/em-udns/zipball/master" class="btn">Download as .zip</a>
+          <a href="https://github.com/ibc/em-udns/tarball/master" class="btn">Download as .tar.gz</a>
+          <a href="https://github.com/ibc/em-udns" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
+        </section>
+      </div>
+    </header>
+
+    <div class="container">
+      <section id="main_content">
+        <h2>Overview</h2>
+
+<p>EM-Udns is an async DNS resolver for <a href="http://rubyeventmachine.com">EventMachine</a> based on <a href="http://www.corpit.ru/mjt/udns.html">udns</a> C library. Having most of the code written in C, EM-Udns becomes very fast. It can resolve DNS A, AAAA, PTR, MX, TXT, SRV and NAPTR records, and can handle every kind of errors (domain/record not found, request timeout, malformed response...).</p>
+
+<p>C udns is a stub resolver, so also EM-Udns. This means that it must rely on a recursive name server, usually co-located in local host or local network. A very good choice is <a href="http://unbound.net">Unbound</a>, a validating, recursive and caching DNS resolver.</p>
+
+<h2>Usage Example</h2>
+
+<pre><code>require "em-udns"
+
+EM.run do
+  # Set the nameserver rather than using /etc/resolv.conf.
+  EM::Udns.nameservers = "127.0.0.1"
+
+  resolver = EM::Udns::Resolver.new
+  EM::Udns.run resolver
+
+  query = resolver.submit_A "google.com"
+
+  query.callback do |result|
+    puts "result =&gt; #{result.inspect}"
+  end
+
+  query.errback do |error|
+    puts "error =&gt; #{error.inspect}"
+  end
+end
+</code></pre>
+
+<p>It would produce following output:</p>
+
+<pre><code>result =&gt; ["209.85.227.105", "209.85.227.103", "209.85.227.104", "209.85.227.106", "209.85.227.99", "209.85.227.147"]
+</code></pre>
+
+<h2>Setting the Nameservers</h2>
+
+<pre><code>EM::Udns.nameservers = nameservers
+</code></pre>
+
+<p>This class method set the nameservers list to use for all the <code>EM::Udns::Resolver</code> instances. If not used, nameservers are taken from <code>/etc/resolv.conf</code> (default behavior). nameserver parameter can be:</p>
+
+<ul>
+<li>
+<code>String</code> - The IP of a single nameserver.</li>
+<li>Array of <code>String</code> -  IP's of multiple nameservers.</li>
+</ul><p>IMPORTANT: This class method must be used before initializing any <code>EM::Udns::Resolver</code> instance.</p>
+
+<p>NOTE: Nameservers must be IPv4 addresses since <a href="http://www.corpit.ru/mjt/udns.html">udns</a> does not listen in IPv6.</p>
+
+<p>Example 1:</p>
+
+<pre><code>EM::Udns.nameservers = "127.0.0.1"
+</code></pre>
+
+<p>Example 2:</p>
+
+<pre><code>EM::Udns.nameservers = ["192.168.100.1", "192.168.100.2"]
+</code></pre>
+
+<h2>Initializing a Resolver</h2>
+
+<pre><code>resolver = EM::Udns::Resolver.new
+</code></pre>
+
+<p>Returns a <code>EM::Udns::Resolver</code> instance. If there is an error an exception <code>EM::Udns::UdnsError</code> is raised.</p>
+
+<h2>Runnig a Resolver</h2>
+
+<pre><code>EM::Udns.run resolver
+</code></pre>
+
+<p>Attaches the UDP socket of the resolver to EventMachine. This method must be called after EventMachine is running.</p>
+
+<h2>Async DNS Queries</h2>
+
+<pre><code>resolver.submit_XXX(parameters)
+</code></pre>
+
+<p>DNS queries are performed by invoking <code>EM::Udns::Resolver#submit_XXX(parameters)</code> methods on the resolver. The complete list of <code>submit_XXX</code> methods are shown below. These methods return a <code>EM::Udns::Query</code> instance. Callback and errback can then be assigned to the <code>Query</code> object via the <code>callback</code> and <code>errback</code> methods which accept a code block as single argument.</p>
+
+<p>In case of success, the callback code block is invoked on the <code>EM::Udns::Query</code> object passing the DNS result object as single argument. Definition of those objects are shown below.</p>
+
+<p>In case of error, the errback code block is invoked with the exact error as single argument, which is a Ruby Symbol:</p>
+
+<ul>
+<li>
+<code>:dns_error_nxdomain</code> - The domain name does not exist.</li>
+<li>
+<code>:dns_error_nodata</code> - The domain exists, but has no data of requested type.</li>
+<li>
+<code>:dns_error_tempfail</code> - Temporary error, the resolver nameserver was not able to process our query or timed out.</li>
+<li>
+<code>:dns_error_protocol</code> - Protocol error, a nameserver returned malformed reply.</li>
+<li>
+<code>:dns_error_badquery</code> - Bad query, name of dn is invalid.</li>
+<li>
+<code>:dns_error_nomem</code> - No memory available to allocate query structure.</li>
+<li>
+<code>:dns_error_unknown</code> - An unknown error has occurred.</li>
+</ul><h2>Type Specific Queries</h2>
+
+<h3>A Record</h3>
+
+<pre><code>resolver.submit_A(domain)
+</code></pre>
+
+<p>In case of success the callback is invoked passing as argument an array of <code>String</code> objects. Each <code>String</code> represents an IPv4 address.</p>
+
+<p>Example:</p>
+
+<pre><code>resolver.submit_A "google.com"
+</code></pre>
+
+<p>Callback is called with argument:</p>
+
+<pre><code>["209.85.227.105",
+ "209.85.227.103",
+ "209.85.227.104",
+ "209.85.227.106",
+ "209.85.227.99",
+ "209.85.227.147"]
+</code></pre>
+
+<h3>AAAA Record</h3>
+
+<pre><code>resolver.submit_AAAA(domain)
+</code></pre>
+
+<p>In case of success the callback is invoked passing as argument an array of <code>String</code> objects. Each <code>String</code> represents an IPv6 address.</p>
+
+<p>Example:</p>
+
+<pre><code>resolver.submit_AAAA "sixxs.net"
+</code></pre>
+
+<p>Callback is called with argument:</p>
+
+<pre><code>["2001:838:2:1::30:67",
+ "2001:838:2:1:2a0:24ff:feab:3b53",
+ "2001:960:800::2",
+ "2001:1af8:4050::2"]
+</code></pre>
+
+<h3>MX Record</h3>
+
+<pre><code>resolver.submit_MX(domain)
+</code></pre>
+
+<p>In case of success the callback is invoked passing as argument an array of <code>EM::Udns::RR_MX</code> objects. Such object contains the following attribute readers:</p>
+
+<ul>
+<li>
+<code>domain</code> - <code>String</code> representing the domain of the MX record.</li>
+<li>
+<code>priority</code> - <code>Fixnum</code> representing the priority of the MX record.</li>
+</ul><p>Example:</p>
+
+<pre><code>resolver.submit_MX "gmail.com"
+</code></pre>
+
+<p>Callback is called with argument:</p>
+
+<pre><code>[#&lt;EventMachine::Udns::RR_MX:0x00000002289090 @domain="alt1.gmail-smtp-in.l.google.com", @priority=10&gt;,
+ #&lt;EventMachine::Udns::RR_MX:0x00000002288e60 @domain="alt3.gmail-smtp-in.l.google.com", @priority=30&gt;,
+ #&lt;EventMachine::Udns::RR_MX:0x000000022886e0 @domain="gmail-smtp-in.l.google.com", @priority=5&gt;,
+ #&lt;EventMachine::Udns::RR_MX:0x00000002288618 @domain="alt2.gmail-smtp-in.l.google.com", @priority=20&gt;,
+ #&lt;EventMachine::Udns::RR_MX:0x000000022883c0 @domain="alt4.gmail-smtp-in.l.google.com", @priority=40&gt;]
+</code></pre>
+
+<h3>PTR Record</h3>
+
+<pre><code>resolver.submit_PTR(ip)
+</code></pre>
+
+<p>Argument ip must be a <code>String</code> representing a IPv4 or IPv6. In case of success the callback is invoked passing as argument an array of <code>String</code> objects. Each <code>String</code> represents a domain.</p>
+
+<p>Example 1:</p>
+
+<pre><code>resolver.submit_PTR "8.8.8.8"
+</code></pre>
+
+<p>Callback is called with argument:</p>
+
+<pre><code>["google-public-dns-a.google.com"]
+</code></pre>
+
+<p>Example 2:</p>
+
+<pre><code>resolver.submit_PTR "2001:838:2:1:2a0:24ff:feab:3b53"
+</code></pre>
+
+<p>Callback is called with argument:</p>
+
+<pre><code>["tunnelserver.concepts-ict.net"]
+</code></pre>
+
+<h3>TXT Record</h3>
+
+<pre><code>resolver.submit_TXT(domain)
+</code></pre>
+
+<p>In case of success the callback is invoked passing as argument an array of <code>String</code> objects. Each <code>String</code> represents a text entry in the TXT result.</p>
+
+<p>Example:</p>
+
+<pre><code>resolver.submit_TXT "gmail.com"
+</code></pre>
+
+<p>Callback is called with argument:</p>
+
+<pre><code>["v=spf1 redirect=_spf.google.com"]
+</code></pre>
+
+<h3>SRV Record</h3>
+
+<pre><code>resolver.submit_SRV(domain)
+resolver.submit_SRV(domain, service, protocol)
+</code></pre>
+
+<p>There are two ways to perform a SRV query:</p>
+
+<ul>
+<li>By passing as argument a single <code>String</code> (domain) with the format "_service._protocol.domain".</li>
+<li>By passing three <code>String</code> arguments (domain, service and protocol).</li>
+</ul><p>In case of success the callback is invoked passing as argument an array of <code>EM::Udns::RR_SRV</code> objects. Such object contains the following attribute readers:</p>
+
+<ul>
+<li>
+<code>domain</code> - <code>String</code> representing the A domain of the SRV record.</li>
+<li>
+<code>port</code> - <code>Fixnum</code> representing the port of the SRV record.</li>
+<li>
+<code>priority</code> - <code>Fixnum</code> representing the priority of the SRV record.</li>
+<li>
+<code>weight</code> - <code>Fixnum</code> representing the weight of the SRV record.</li>
+</ul><p>For more information about these fields check <a href="http://tools.ietf.org/html/rfc2782">RFC 2782</a>.</p>
+
+<p>Example:</p>
+
+<pre><code>resolver.submit_SRV "_sip._tcp.oversip.net"
+</code></pre>
+
+<p>or:</p>
+
+<pre><code>resolver.submit_SRV "oversip.net", "sip", "tcp"
+</code></pre>
+
+<p>Callback is called with argument:</p>
+
+<pre><code>[#&lt;EventMachine::Udns::RR_SRV:0x00000001ea4970 @domain="sip1.oversip.net", @priority=1, @weight=50, @port=5062&gt;,
+ #&lt;EventMachine::Udns::RR_SRV:0x00000001ea4b50 @domain="sip2.oversip.net", @priority=2, @weight=50, @port=5060&gt;]
+</code></pre>
+
+<h3>NAPTR Record</h3>
+
+<pre><code>resolver.submit_NAPTR(domain)
+</code></pre>
+
+<p>In case of success the callback is invoked passing as argument an array of <code>EM::Udns::RR_NAPTR</code> objects. Such object contains the following attribute readers:</p>
+
+<ul>
+<li>
+<code>order</code> - <code>Fixnum</code> representing the order of the NAPTR record.</li>
+<li>
+<code>preference</code> - <code>Fixnum</code> representing the preference of the NAPTR record.</li>
+<li>
+<code>flags</code> - <code>String</code> representing the flags of the NAPTR record.</li>
+<li>
+<code>service</code> - <code>String</code> representing the service of the NAPTR record.</li>
+<li>
+<code>regexp</code> - <code>String</code> representing the regular expression field of the NAPTR record (<code>nil</code> in case <code>replacement</code> has value).</li>
+<li>
+<code>replacement</code> - <code>String</code> representing the replacement string field of the NAPTR record (<code>nil</code> in case <code>regexp</code> has value).</li>
+</ul><p>For more information about these fields check <a href="http://tools.ietf.org/html/rfc2915">RFC 2915</a>.</p>
+
+<p>Example:</p>
+
+<pre><code>resolver.submit_NAPTR "oversip.net"
+</code></pre>
+
+<p>Callback is called with argument:</p>
+
+<pre><code>[#&lt;EventMachine::Udns::RR_NAPTR:0x00000002472aa0 @order=30, @preference=50, @flags="S", @service="SIPS+D2T", @regexp=nil, @replacement="_sips._tcp.oversip.net"&gt;,
+ #&lt;EventMachine::Udns::RR_NAPTR:0x00000002472848 @order=40, @preference=50, @flags="S", @service="SIP+D2S", @regexp=nil, @replacement="_sip._sctp.oversip.net"&gt;,
+ #&lt;EventMachine::Udns::RR_NAPTR:0x000000024723e8 @order=10, @preference=50, @flags="S", @service="SIP+D2T", @regexp=nil, @replacement="_sip._tcp.oversip.net"&gt;,
+ #&lt;EventMachine::Udns::RR_NAPTR:0x00000002471d80 @order=20, @preference=50, @flags="S", @service="SIP+D2U", @regexp=nil, @replacement="_sip._udp.oversip.net"&gt;]
+</code></pre>
+
+<h2>Other Features</h2>
+
+<h3>Number of Active Queries</h3>
+
+<pre><code>resolver.active
+</code></pre>
+
+<p><code>EM::Udns::Resolver#active</code> returns the number of pending queries of resolver as a <code>Fixnum</code>.</p>
+
+<h3>Cancelling a Pending Query</h3>
+
+<pre><code>resolver.cancel query
+</code></pre>
+
+<p><code>EM::Udns::Resolver#cancel(query)</code> cancels the <code>EM::Udns::Query</code> given as argument so no callback/errback would be called upon query completion.</p>
+
+<h2>Installation</h2>
+
+<p>EM-Udns is provided as a Ruby Gem:</p>
+
+<pre><code>~$ gem install em-udns
+</code></pre>
+
+<h2>Supported Platforms</h2>
+
+<p>EM-Udns is tested under the following platforms:</p>
+
+<ul>
+<li>Linux 32 and 64 bits</li>
+<li>Mac OSX 32 and 64 bits</li>
+</ul><p>See also the <a href="https://github.com/ibc/em-udns/blob/master/ext/extconf.rb">extconf.rb</a> file which compiles udns C library according to current platform.</p>
+
+<h2>TODO</h2>
+
+<ul>
+<li>Testing on other platforms.</li>
+</ul><h2>Acknowledgement</h2>
+
+<p>Many thanks to Michael Tokarev (the author of <a href="http://www.corpit.ru/mjt/udns.html">udns</a> C library) for all the help provided in udns mailing list.</p>
+      </section>
+    </div>
+
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-30651599-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+  </body>
+</html>
