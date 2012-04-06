@@ -1,8 +1,6 @@
 # EM-Udns
 
-## Homepage
-
-http://ibc.github.com/em-udns/
+* Home page: http://ibc.github.com/em-udns/
 
 
 ## Introduction
