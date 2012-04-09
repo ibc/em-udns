@@ -14,7 +14,6 @@ Gem::Specification.new do |spec|
     "em-udns is an async DNS resolver for EventMachine based on udns C library. Having most of the core written in C, em-udns becomes very fast. It can resolve DNS A, AAAA, PTR, MX, TXT, SRV and NAPTR records, and can handle every kind of errors (domain/record not found, request timeout, malformed response...)."
   spec.extensions = ["ext/extconf.rb"]
   spec.required_ruby_version = ">= 1.8.7"
-  spec.add_dependency "eventmachine"
   spec.files = %w{
     lib/em-udns.rb
     lib/em-udns/version.rb
