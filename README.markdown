@@ -9,6 +9,8 @@ EM-Udns is an async DNS resolver for [EventMachine](http://rubyeventmachine.com)
 
 C udns is a stub resolver, so also EM-Udns. This means that it must rely on a recursive name server, usually co-located in local host or local network. A very good choice is [Unbound](http://unbound.net), a validating, recursive and caching DNS resolver.
 
+**IMPORTANT:** Please read this again: EM-Udns is a stub resolver so you need a recursive nameserver. Probably the DNS nameserver offered via DHCP by your Internet provider is not a recursive nameserver so EM-Udns will **NOT** work. Please don't attempt to use EM-Udns if you don't properly understand what this note means.
+
 
 ## Usage Example
 
