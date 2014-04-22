@@ -261,7 +261,7 @@ static void dns_result_PTR_cb(struct dns_ctx *dns_context, struct dns_rr_ptr *rr
   for(i = 0; i < rr->dnsptr_nrr; i++)
     rb_ary_push(array, rb_str_new2(rr->dnsptr_ptr[i]));
   free(rr);
-  
+
   rb_funcall(query, method_do_success, 1, array);
 }
 
@@ -286,6 +286,25 @@ static void dns_result_MX_cb(struct dns_ctx *dns_context, struct dns_rr_mx *rr, 
 
   rb_funcall(query, method_do_success, 1, array);
 }
+
+static void dns_result_NS_cb(struct dns_ctx *dns_context, struct dns_rr_ns *rr, void *data)
+{
+  VALUE query;
+  VALUE array;
+  int i;
+  VALUE rr_ns;
+
+  if (!(query = (VALUE)check_query(dns_context, rr, data))) return;
+
+  array = rb_ary_new2(rr->dnsns_nrr);
+  for(i = 0; i < rr->dnsns_nrr; i++) {
+    rb_ary_push(array, rb_str_new2(rr->dnsns_ns[i]));
+  }
+  free(rr);
+
+  rb_funcall(query, method_do_success, 1, array);
+}
+
 
 
 static void dns_result_TXT_cb(struct dns_ctx *dns_context, struct dns_rr_txt *rr, void *data)
@@ -524,6 +543,33 @@ VALUE Resolver_submit_MX(VALUE self, VALUE rb_domain)
   return query;
 }
 
+VALUE Resolver_submit_NS(VALUE self, VALUE rb_domain)
+{
+  struct dns_ctx *dns_context;
+  char *domain;
+  VALUE query;
+  VALUE error;
+  struct resolver_query *data;
+
+  Data_Get_Struct(self, struct dns_ctx, dns_context);
+  domain = StringValueCStr(rb_domain);
+  query = rb_obj_alloc(cQuery);
+
+  data = ALLOC(struct resolver_query);
+  data->resolver = self;
+  data-> query = query;
+
+  if (!dns_submit_ns(dns_context, domain, 0, dns_result_NS_cb, (void *)data)) {
+    error = get_dns_error(dns_context);
+    xfree(data);
+    rb_funcall(query, method_do_error, 1, error);
+  }
+  else {
+    rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
+  }
+  return query;
+}
+
 
 VALUE Resolver_submit_TXT(VALUE self, VALUE rb_domain)
 {
@@ -663,6 +709,7 @@ void Init_em_udns_ext()
   rb_define_method(cResolver, "submit_TXT", Resolver_submit_TXT, 1);
   rb_define_method(cResolver, "submit_SRV", Resolver_submit_SRV, -1);
   rb_define_method(cResolver, "submit_NAPTR", Resolver_submit_NAPTR, 1);
+  rb_define_method(cResolver, "submit_NS", Resolver_submit_NS, 1);
 
   cQuery = rb_define_class_under(mUdns, "Query", rb_cObject);
 
