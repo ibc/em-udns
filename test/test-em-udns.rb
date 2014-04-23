@@ -18,6 +18,7 @@ USAGE:
   #{$0} SRV _service._protocol.domain [times]
   #{$0} SRV domain [service] [protocol] [times]
   #{$0} NAPTR domain [times]
+  #{$0} NS domain [times]
 END_USAGE
 end
 
@@ -30,7 +31,7 @@ end
 type = ARGV[0].upcase
 name = ARGV[1]
 case type
-when "A", "AAAA", "MX", "TXT", "PTR", "NAPTR"
+when "A", "AAAA", "MX", "TXT", "PTR", "NAPTR", "NS"
   times = (ARGV[2].to_i > 0) ? ARGV[2].to_i : 1
 when "SRV"
   if ARGV[3]
@@ -92,6 +93,8 @@ EM.run do
           resolver.submit_SRV name, service, protocol
         when "NAPTR"
           resolver.submit_NAPTR name
+        when "NS"
+          resolver.submit_NS name
       end
 
       query.callback do |result|

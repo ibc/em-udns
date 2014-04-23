@@ -141,8 +141,7 @@ VALUE Resolver_timeouts(VALUE self)
 VALUE Resolver_cancel(VALUE self, VALUE query)
 {
   VALUE queries;
-  VALUE value;
-  
+
   queries = rb_ivar_get(self, id_queries);
   if (TYPE(rb_hash_aref(queries, query)) == T_TRUE) {
     rb_hash_aset(queries, query, Qfalse);
@@ -292,7 +291,6 @@ static void dns_result_NS_cb(struct dns_ctx *dns_context, struct dns_rr_ns *rr, 
   VALUE query;
   VALUE array;
   int i;
-  VALUE rr_ns;
 
   if (!(query = (VALUE)check_query(dns_context, rr, data))) return;
 
@@ -317,7 +315,7 @@ static void dns_result_TXT_cb(struct dns_ctx *dns_context, struct dns_rr_txt *rr
 
   array = rb_ary_new2(rr->dnstxt_nrr);
   for(i = 0; i < rr->dnstxt_nrr; i++)
-    rb_ary_push(array, rb_str_new(rr->dnstxt_txt[i].txt, rr->dnstxt_txt[i].len));
+    rb_ary_push(array, rb_str_new((const char*)rr->dnstxt_txt[i].txt, rr->dnstxt_txt[i].len));
   free(rr);
 
   rb_funcall(query, method_do_success, 1, array);
