@@ -21,6 +21,11 @@ C udns is a stub resolver, so also EM-Udns. This means that it must rely on a re
       EM::Udns.nameservers = "127.0.0.1"
       
       resolver = EM::Udns::Resolver.new
+
+      # alternate method of setting nameserver, including non-standard port
+      # resolver = EM::Udns::Resolver.new(nameserver: '127.0.0.1:5353')
+      # resolver = EM::Udns::Resolver.new(nameserver: ['192.168.0.1', '192.168.0.2:5353'])
+
       EM::Udns.run resolver
 
       query = resolver.submit_A "google.com"
@@ -67,8 +72,12 @@ Example 2:
 
 Returns a `EM::Udns::Resolver` instance. If there is an error an exception `EM::Udns::UdnsError` is raised.
 
-    
-## Runnig a Resolver
+    nameserver(s) may also be passed to `new` as a hash argument:
+
+    resolver = EM::Udns::Resolver.new(nameserver: '127.0.0.1:5353')
+    resolver = EM::Udns::Resolver.new(nameserver: ['192.168.0.1', '192.168.0.2:5353'])
+
+## Running a Resolver
 
     EM::Udns.run resolver
 

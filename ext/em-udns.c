@@ -2,6 +2,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 #include "udns.h"
 #include "em-udns.h"
 
@@ -668,6 +670,36 @@ VALUE Resolver_submit_NAPTR(VALUE self, VALUE rb_domain)
   return query;
 }
 
+int _add_serv_s(struct dns_ctx *dns_context, const char *ip, in_port_t port)
+{
+  struct sockaddr_in server_addr;
+  server_addr.sin_family = AF_INET;
+  inet_aton(ip, &server_addr.sin_addr);
+  server_addr.sin_port = htons(port);
+  return dns_add_serv_s(dns_context, (struct sockaddr *)&server_addr);
+}
+
+VALUE Resolver_add_serv(VALUE self, VALUE ip)
+{
+  struct dns_ctx *dns_context;
+  struct servent *sp;
+
+  Data_Get_Struct(self, struct dns_ctx, dns_context);
+
+  if (TYPE(ip) == T_NIL) {
+    return INT2FIX(dns_add_serv(dns_context, NULL));
+  }
+
+  sp = getservbyname("domain", "udp");
+  return INT2FIX(_add_serv_s(dns_context, StringValueCStr(ip), htons(sp->s_port)));
+}
+
+VALUE Resolver_add_serv_s(VALUE self, VALUE ip, VALUE port)
+{
+  struct dns_ctx *dns_context;
+  Data_Get_Struct(self, struct dns_ctx, dns_context);
+  return INT2FIX(_add_serv_s(dns_context, StringValueCStr(ip), FIX2INT(port)));
+}
 
 /* Attribute readers. */
 VALUE RR_MX_domain(VALUE self)          { return rb_ivar_get(self, id_domain); }
@@ -708,6 +740,8 @@ void Init_em_udns_ext()
   rb_define_method(cResolver, "submit_SRV", Resolver_submit_SRV, -1);
   rb_define_method(cResolver, "submit_NAPTR", Resolver_submit_NAPTR, 1);
   rb_define_method(cResolver, "submit_NS", Resolver_submit_NS, 1);
+  rb_define_method(cResolver, "add_serv", Resolver_add_serv, 1);
+  rb_define_method(cResolver, "add_serv_s", Resolver_add_serv_s, 2);
 
   cQuery = rb_define_class_under(mUdns, "Query", rb_cObject);
 
