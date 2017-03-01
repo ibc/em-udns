@@ -2,6 +2,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 #include "udns.h"
 #include "em-udns.h"
 
@@ -141,8 +143,7 @@ VALUE Resolver_timeouts(VALUE self)
 VALUE Resolver_cancel(VALUE self, VALUE query)
 {
   VALUE queries;
-  VALUE value;
-  
+
   queries = rb_ivar_get(self, id_queries);
   if (TYPE(rb_hash_aref(queries, query)) == T_TRUE) {
     rb_hash_aset(queries, query, Qfalse);
@@ -261,7 +262,7 @@ static void dns_result_PTR_cb(struct dns_ctx *dns_context, struct dns_rr_ptr *rr
   for(i = 0; i < rr->dnsptr_nrr; i++)
     rb_ary_push(array, rb_str_new2(rr->dnsptr_ptr[i]));
   free(rr);
-  
+
   rb_funcall(query, method_do_success, 1, array);
 }
 
@@ -287,6 +288,24 @@ static void dns_result_MX_cb(struct dns_ctx *dns_context, struct dns_rr_mx *rr, 
   rb_funcall(query, method_do_success, 1, array);
 }
 
+static void dns_result_NS_cb(struct dns_ctx *dns_context, struct dns_rr_ns *rr, void *data)
+{
+  VALUE query;
+  VALUE array;
+  int i;
+
+  if (!(query = (VALUE)check_query(dns_context, rr, data))) return;
+
+  array = rb_ary_new2(rr->dnsns_nrr);
+  for(i = 0; i < rr->dnsns_nrr; i++) {
+    rb_ary_push(array, rb_str_new2(rr->dnsns_ns[i]));
+  }
+  free(rr);
+
+  rb_funcall(query, method_do_success, 1, array);
+}
+
+
 
 static void dns_result_TXT_cb(struct dns_ctx *dns_context, struct dns_rr_txt *rr, void *data)
 {
@@ -298,7 +317,7 @@ static void dns_result_TXT_cb(struct dns_ctx *dns_context, struct dns_rr_txt *rr
 
   array = rb_ary_new2(rr->dnstxt_nrr);
   for(i = 0; i < rr->dnstxt_nrr; i++)
-    rb_ary_push(array, rb_str_new(rr->dnstxt_txt[i].txt, rr->dnstxt_txt[i].len));
+    rb_ary_push(array, rb_str_new((const char*)rr->dnstxt_txt[i].txt, rr->dnstxt_txt[i].len));
   free(rr);
 
   rb_funcall(query, method_do_success, 1, array);
@@ -524,6 +543,33 @@ VALUE Resolver_submit_MX(VALUE self, VALUE rb_domain)
   return query;
 }
 
+VALUE Resolver_submit_NS(VALUE self, VALUE rb_domain)
+{
+  struct dns_ctx *dns_context;
+  char *domain;
+  VALUE query;
+  VALUE error;
+  struct resolver_query *data;
+
+  Data_Get_Struct(self, struct dns_ctx, dns_context);
+  domain = StringValueCStr(rb_domain);
+  query = rb_obj_alloc(cQuery);
+
+  data = ALLOC(struct resolver_query);
+  data->resolver = self;
+  data-> query = query;
+
+  if (!dns_submit_ns(dns_context, domain, 0, dns_result_NS_cb, (void *)data)) {
+    error = get_dns_error(dns_context);
+    xfree(data);
+    rb_funcall(query, method_do_error, 1, error);
+  }
+  else {
+    rb_hash_aset(rb_ivar_get(self, id_queries), query, Qtrue);
+  }
+  return query;
+}
+
 
 VALUE Resolver_submit_TXT(VALUE self, VALUE rb_domain)
 {
@@ -624,6 +670,36 @@ VALUE Resolver_submit_NAPTR(VALUE self, VALUE rb_domain)
   return query;
 }
 
+int _add_serv_s(struct dns_ctx *dns_context, const char *ip, in_port_t port)
+{
+  struct sockaddr_in server_addr;
+  server_addr.sin_family = AF_INET;
+  inet_aton(ip, &server_addr.sin_addr);
+  server_addr.sin_port = htons(port);
+  return dns_add_serv_s(dns_context, (struct sockaddr *)&server_addr);
+}
+
+VALUE Resolver_add_serv(VALUE self, VALUE ip)
+{
+  struct dns_ctx *dns_context;
+  struct servent *sp;
+
+  Data_Get_Struct(self, struct dns_ctx, dns_context);
+
+  if (TYPE(ip) == T_NIL) {
+    return INT2FIX(dns_add_serv(dns_context, NULL));
+  }
+
+  sp = getservbyname("domain", "udp");
+  return INT2FIX(_add_serv_s(dns_context, StringValueCStr(ip), htons(sp->s_port)));
+}
+
+VALUE Resolver_add_serv_s(VALUE self, VALUE ip, VALUE port)
+{
+  struct dns_ctx *dns_context;
+  Data_Get_Struct(self, struct dns_ctx, dns_context);
+  return INT2FIX(_add_serv_s(dns_context, StringValueCStr(ip), FIX2INT(port)));
+}
 
 /* Attribute readers. */
 VALUE RR_MX_domain(VALUE self)          { return rb_ivar_get(self, id_domain); }
@@ -663,6 +739,9 @@ void Init_em_udns_ext()
   rb_define_method(cResolver, "submit_TXT", Resolver_submit_TXT, 1);
   rb_define_method(cResolver, "submit_SRV", Resolver_submit_SRV, -1);
   rb_define_method(cResolver, "submit_NAPTR", Resolver_submit_NAPTR, 1);
+  rb_define_method(cResolver, "submit_NS", Resolver_submit_NS, 1);
+  rb_define_method(cResolver, "add_serv", Resolver_add_serv, 1);
+  rb_define_method(cResolver, "add_serv_s", Resolver_add_serv_s, 2);
 
   cQuery = rb_define_class_under(mUdns, "Query", rb_cObject);
 
